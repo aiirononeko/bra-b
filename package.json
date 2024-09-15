@@ -23,11 +23,17 @@
     "@remix-run/react": "^2.11.1",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
     "hono": "^4.6.1",
     "hono-remix-adapter": "^0.1.2",
     "isbot": "^4.1.0",
+    "lucide-react": "^0.441.0",
     "react": "^18.2.0",
+    "react-aria-components": "^1.3.3",
     "react-dom": "^18.2.0",
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss-animate": "^1.0.7",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

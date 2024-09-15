@@ -1,17 +1,17 @@
 import { PrismaClient } from "@prisma/client"
-import { json, LoaderFunctionArgs } from "@remix-run/cloudflare"
+import { withAccelerate } from "@prisma/extension-accelerate"
+import { json } from "@remix-run/cloudflare"
 import { useLoaderData } from "@remix-run/react"
 import { Heart, UserRound } from "lucide-react"
 
-export const loader = async ({ context }: LoaderFunctionArgs) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: context.cloudflare.env.DATABASE_URL
-  })
+export const loader = async () => {
+  const prisma = new PrismaClient().$extends(withAccelerate())
   const baristas = await prisma.barista.findMany({
     include: {
       profile: {},
       store: {}
-    }
+    },
+    cacheStrategy: { ttl: 60 },
   })
 
   return json({ baristas })

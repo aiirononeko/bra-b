@@ -14,7 +14,7 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
       profile: {},
       store: {},
     },
-    cacheStrategy: { ttl: 60 },
+    cacheStrategy: { ttl: 300 },
   })
 
   return json({ baristas })

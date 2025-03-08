@@ -5,18 +5,25 @@
   "main": "index.js",
   "packageManager": "pnpm@10.6.1",
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:frontend\" \"pnpm run dev:backend\"",
-    "dev:frontend": "echo \"Running frontend dev\" && pnpm --filter=./app/frontend dev",
-    "dev:backend": "echo \"Running backend server\" && cd app/backend/cmd/server && go run main.go",
-    "build": "echo \"Building workspace packages\" && pnpm --filter=./app/* build",
-    "lint": "echo \"Linting workspace packages\" && pnpm --filter=./app/* lint",
-    "test": "echo \"Testing workspace packages\" && pnpm --filter=./app/* test"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "build:frontend": "cd app/frontend && pnpm build",
+    "lint": "turbo lint",
+    "lint:biome": "biome check .",
+    "format": "turbo format",
+    "format:biome": "biome format . --write",
+    "format:check": "biome format .",
+    "check": "biome check --apply .",
+    "test": "turbo test",
+    "deploy": "turbo deploy",
+    "deploy:frontend": "cd app/frontend && pnpm deploy",
+    "deploy:backend": "cd app/backend-ts && pnpm deploy"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "@biomejs/biome": "^1.9.4",
     "turbo": "^2.4.4"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["react", "hono", "cloudflare", "tanstack", "monorepo"],
+  "author": "aiirononeko",
   "license": "ISC"
 }

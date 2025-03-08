@@ -1,0 +1,25 @@
+{
+  "name": "backend-ts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy --minify src/index.ts",
+    "build": "esbuild --bundle --format=esm --platform=browser --outfile=dist/index.js src/index.ts",
+    "lint": "biome check src",
+    "format": "biome format src --write",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@cloudflare/workers-types": "^4.20240320.0",
+    "@types/node": "^20.11.24",
+    "esbuild": "^0.20.1",
+    "eslint": "^8.57.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.32.0"
+  }
+}

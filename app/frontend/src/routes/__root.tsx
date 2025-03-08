@@ -1,7 +1,7 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 
 // QueryClientの作成
 const queryClient = new QueryClient({
@@ -10,7 +10,7 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // 5分
     },
   },
-})
+});
 
 export const Route = createRootRoute({
   component: () => (
@@ -18,7 +18,7 @@ export const Route = createRootRoute({
       <div className="p-2 flex gap-2">
         <Link to="/" className="[&.active]:font-bold">
           ホーム
-        </Link>{' '}
+        </Link>{" "}
         <Link to="/about" className="[&.active]:font-bold">
           About
         </Link>
@@ -29,4 +29,4 @@ export const Route = createRootRoute({
       {import.meta.env.DEV && <TanStackRouterDevtools />}
     </QueryClientProvider>
   ),
-}) 
+});

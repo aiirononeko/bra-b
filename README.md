@@ -28,10 +28,10 @@ React + TanStack Router + TanStack Query フロントエンド と Hono バッ�
 
 ```
 bra-b/
-├── app/                      # アプリケーションコード
-│   ├── frontend/            # フロントエンドアプリ (React)
-│   └── backend-ts/          # バックエンドAPI (Hono)
-├── scripts/                 # デプロイスクリプト
+├── app/                    # アプリケーションコード
+│   ├── frontend/           # フロントエンドアプリ (React)
+│   └── backend/            # バックエンドAPI (Hono)
+├── scripts/                # デプロイスクリプト
 │   ├── deploy-frontend.sh  # フロントエンドデプロイ
 │   └── deploy-backend.sh   # バックエンドデプロイ
 ├── package.json            # ルートパッケージ設定
@@ -61,7 +61,7 @@ pnpm dev
 
 # または個別に起動
 pnpm --filter=./app/frontend dev    # フロントエンドのみ
-pnpm --filter=./app/backend-ts dev  # バックエンドのみ
+pnpm --filter=./app/backend dev  # バックエンドのみ
 ```
 
 ### リンティングとフォーマット

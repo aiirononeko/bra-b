@@ -10,7 +10,7 @@ pnpm dev
 
 # 特定のアプリケーションのみ開発サーバーを起動
 pnpm --filter=./app/frontend dev  # フロントエンドのみ
-pnpm --filter=./app/backend-ts dev  # バックエンドのみ
+pnpm --filter=./app/backend dev  # バックエンドのみ
 ```
 
 ## ビルド
@@ -21,7 +21,7 @@ pnpm build
 
 # 特定のアプリケーションのみビルド
 pnpm --filter=./app/frontend build  # フロントエンドのみ
-pnpm --filter=./app/backend-ts build  # バックエンドのみ
+pnpm --filter=./app/backend build  # バックエンドのみ
 ```
 
 ## リントとフォーマット
@@ -32,7 +32,7 @@ pnpm lint
 
 # 特定のアプリケーションのみリント
 pnpm --filter=./app/frontend lint  # フロントエンドのみ
-pnpm --filter=./app/backend-ts lint  # バックエンドのみ
+pnpm --filter=./app/backend lint  # バックエンドのみ
 
 # 全てのコードをフォーマット
 pnpm format
@@ -58,7 +58,7 @@ pnpm test
 
 # 特定のアプリケーションのみテスト
 pnpm --filter=./app/frontend test  # フロントエンドのみ
-pnpm --filter=./app/backend-ts test  # バックエンドのみ
+pnpm --filter=./app/backend test  # バックエンドのみ
 ```
 
 ## デプロイ

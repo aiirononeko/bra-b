@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 # バックエンドディレクトリに移動
-cd app/backend-ts
+cd app/backend
 
 # 依存関係のインストール
 echo "📦 Installing dependencies..."

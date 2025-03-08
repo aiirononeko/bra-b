@@ -2,18 +2,11 @@ name = "bra-b-backend"
 main = "src/index.ts"
 compatibility_date = "2024-03-09"
 
-# 開発環境設定
 [dev]
 port = 8787
 
-# 環境変数設定
 [vars]
 API_VERSION = "v1"
 
-# CORS設定
-[[headers]]
-for = "/*"
-[headers.set]
-Access-Control-Allow-Origin = "*"
-Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-Access-Control-Allow-Headers = "Content-Type, Authorization"
+[http_headers]
+"/*" = { Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization" }

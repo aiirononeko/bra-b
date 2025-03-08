@@ -1,6 +1,7 @@
-# BRA-B アプリケーション
+# bra-B
 
-React + TanStack Router + TanStack Query フロントエンド と Hono バックエンドによる現代的なWebアプリケーション
+bra-B（ブラービ）は、バリスタのためのブランディングツールです。
+カスタマーにより客観的に評価されることで、自身のスキルを可視化し、バリスタとしてのキャリアを支援します。
 
 ## 技術スタック
 
@@ -19,27 +20,42 @@ React + TanStack Router + TanStack Query フロントエンド と Hono バッ�
 - pnpm (パッケージマネージャー)
 - Turborepo (モノレポ管理)
 - TypeScript (型システム)
+- Vitest (テストフレームワーク)
 
 ### インフラ
 - Cloudflare Pages (フロントエンドホスティング)
 - Cloudflare Workers (バックエンドホスティング)
+- GitHub Actions (CI/CD)
 
 ## プロジェクト構造
 
 ```
 bra-b/
-├── app/                    # アプリケーションコード
-│   ├── frontend/           # フロントエンドアプリ (React)
-│   └── backend/            # バックエンドAPI (Hono)
-├── scripts/                # デプロイスクリプト
-│   ├── deploy-frontend.sh  # フロントエンドデプロイ
-│   └── deploy-backend.sh   # バックエンドデプロイ
-├── package.json            # ルートパッケージ設定
-├── pnpm-workspace.yaml     # ワークスペース設定
-├── turbo.json              # Turborepo設定
-├── biome.json              # Biome設定
-├── COMMANDS.md             # コマンドラインガイド
-└── README.md               # プロジェクト概要
+├── app/                          # アプリケーションコード
+│   ├── frontend/                 # フロントエンドアプリ (React)
+│   │   ├── src/                  # ソースコード
+│   │   ├── public/               # 静的ファイル
+│   │   │   └── _routes.json      # SPAルーティング設定
+│   │   └── wrangler.toml         # Cloudflare Pages設定
+│   └── backend/                  # バックエンドAPI (Hono)
+│       ├── src/                  # ソースコード
+│       │   ├── index.ts          # エントリーポイント
+│       │   ├── utils/            # ユーティリティ関数
+│       │   └── tests/            # テストファイル
+│       ├── wrangler.toml         # Cloudflare Workers設定
+│       └── vitest.config.ts      # Vitestの設定
+├── .github/                      # GitHub関連ファイル
+│   └── workflows/                # GitHub Actionsワークフロー
+│       ├── deploy-frontend.yml   # フロントエンドデプロイ
+│       ├── deploy-backend.yml    # バックエンドデプロイ
+│       ├── lint-format.yml       # リント・フォーマットチェック
+│       └── test.yml              # テスト実行
+├── package.json                  # ルートパッケージ設定
+├── pnpm-workspace.yaml           # ワークスペース設定
+├── turbo.json                    # Turborepo設定
+├── biome.json                    # Biome設定
+├── COMMANDS.md                   # コマンドラインガイド
+└── README.md                     # プロジェクト概要
 ```
 
 ## 開発方法
@@ -76,25 +92,63 @@ pnpm format
 pnpm check
 ```
 
+### テスト実行
+```bash
+# 全テストを実行
+pnpm test
+
+# バックエンドのテストのみ実行
+pnpm test:backend
+
+# カバレッジレポート付きでテスト実行
+pnpm test:backend:coverage
+
+# UI モードでテスト実行（開発時）
+cd app/backend && pnpm test:ui
+```
+
 ## デプロイ方法
 
 ### フロントエンド (Cloudflare Pages)
 ```bash
 # ルートディレクトリから
 pnpm deploy:frontend
-# または
-./scripts/deploy-frontend.sh
 ```
+
+デプロイURL: `https://bra-b.com`
+
+#### SPAルーティング
+フロントエンドはSPA（Single Page Application）として設定されており、クライアントサイドルーティングが有効です。これは `public/_routes.json` ファイルで設定されています。
 
 ### バックエンド (Cloudflare Workers)
 ```bash
 # ルートディレクトリから
 pnpm deploy:backend
-# または
-./scripts/deploy-backend.sh
 ```
 
+デプロイURL: `https://api.bra-b.com`
+
 より詳細なコマンドについては [COMMANDS.md](./COMMANDS.md) を参照してください。
+
+## CI/CD パイプライン
+
+このプロジェクトでは、GitHub Actionsを使用して以下のCI/CDパイプラインが構成されています：
+
+### 1. リントとフォーマットチェック
+- すべてのプッシュとプルリクエストで実行
+- コードスタイルとルールの遵守を確認
+
+### 2. テスト実行
+- すべてのプッシュとプルリクエストで実行
+- カバレッジレポートも生成
+
+### 3. フロントエンドデプロイ
+- mainブランチへのプッシュ時に実行
+- app/frontend ディレクトリの変更があった場合のみトリガー
+
+### 4. バックエンドデプロイ
+- mainブランチへのプッシュ時に実行
+- app/backend ディレクトリの変更があった場合のみトリガー
 
 ## 開発ワークフロー
 

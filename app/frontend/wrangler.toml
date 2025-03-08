@@ -1,18 +1,11 @@
 name = "bra-b-frontend"
 compatibility_date = "2024-03-08"
 
-[site]
-bucket = "./dist"
+# Pages specific configuration
+pages_build_output_dir = "dist"
 
 [build]
 command = "pnpm build"
-upload.format = "directory"
 
-# SPAルーティング用の設定（クライアントサイドルーティング対応）
-[site.mounts]
-source = "./dist"
-destination = "/"
-
-[[routes]]
-pattern = "/*"
-fallback = "index.html"
+[site]
+bucket = "./dist"

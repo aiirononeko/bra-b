@@ -1,0 +1,22 @@
+{
+  "name": "bra-b",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "packageManager": "pnpm@10.6.1",
+  "scripts": {
+    "dev": "concurrently \"pnpm run dev:frontend\" \"pnpm run dev:backend\"",
+    "dev:frontend": "echo \"Running frontend dev\" && pnpm --filter=./app/frontend dev",
+    "dev:backend": "echo \"Running backend server\" && cd app/backend/cmd/server && go run main.go",
+    "build": "echo \"Building workspace packages\" && pnpm --filter=./app/* build",
+    "lint": "echo \"Linting workspace packages\" && pnpm --filter=./app/* lint",
+    "test": "echo \"Testing workspace packages\" && pnpm --filter=./app/* test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "turbo": "^2.4.4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

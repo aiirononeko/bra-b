@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler deploy --minify src/index.ts",
+    "dev": "pnpm wrangler dev src/index.ts",
+    "deploy": "pnpm wrangler deploy --minify src/index.ts",
     "build": "esbuild --bundle --format=esm --platform=browser --outfile=dist/index.js src/index.ts",
     "lint": "biome check src",
     "format": "biome format src --write",

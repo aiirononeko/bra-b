@@ -9,7 +9,7 @@
     "lint": "biome check src",
     "format": "biome format src --write",
     "preview": "vite preview",
-    "deploy": "wrangler pages deploy dist --project-name=bra-b-frontend"
+    "deploy": "pnpm wrangler pages deploy dist --project-name=bra-b-frontend"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.22.2",

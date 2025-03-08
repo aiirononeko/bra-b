@@ -19,8 +19,8 @@
     "test:backend": "cd app/backend && pnpm test",
     "test:backend:coverage": "cd app/backend && pnpm test:coverage",
     "deploy": "turbo deploy",
-    "deploy:frontend": "cd app/frontend && pnpm deploy",
-    "deploy:backend": "cd app/backend && pnpm deploy"
+    "deploy:frontend": "cd app/frontend && pnpm run deploy",
+    "deploy:backend": "cd app/backend && pnpm run deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

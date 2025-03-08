@@ -17,6 +17,6 @@ pnpm build
 
 # Cloudflare Pagesにデプロイ
 echo "🚀 Deploying to Cloudflare Pages..."
-pnpm deploy
+pnpm run deploy
 
 echo "✅ Frontend deployment complete!"

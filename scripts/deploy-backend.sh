@@ -17,6 +17,6 @@ pnpm build
 
 # Cloudflare Workersにデプロイ
 echo "🚀 Deploying backend to Cloudflare Workers..."
-pnpm deploy
+pnpm run deploy
 
 echo "✅ Backend deployment complete!"

@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'app/frontend/**'
-      - '.github/workflows/deploy-frontend.yml'
+      - "app/frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
 
 jobs:
@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      deployments: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,12 +21,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: '10.6.1'
+          version: "10.6.1"
           run_install: false
 
       - name: Get pnpm store directory
@@ -45,7 +46,7 @@ jobs:
         run: pnpm install
 
       - name: Format check
-        run: cd app/frontend && pnpm biome format src --write-mode=check
+        run: cd app/frontend && npx @biomejs/biome format src
 
       - name: Lint check
         run: cd app/frontend && pnpm biome check src
@@ -54,10 +55,21 @@ jobs:
         run: pnpm build:frontend
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: bra-b-frontend
-          directory: app/frontend/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }} 
+          packageManager: pnpm
+          command: pages deploy app/frontend/dist --project-name=bra-b-frontend
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output deployment URLs
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        run: |
+          echo "Deployment URL: $DEPLOYMENT_URL"
+          if [ ! -z "$DEPLOYMENT_ALIAS_URL" ]; then
+            echo "Deployment Alias URL: $DEPLOYMENT_ALIAS_URL"
+          fi

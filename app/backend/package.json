@@ -11,6 +11,7 @@
     "deploy:dev": "wrangler deploy --env development"
   },
   "dependencies": {
+    "hono": "^4.7.4",
     "wrangler": "^3.34.2"
   }
 }

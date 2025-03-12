@@ -5,16 +5,14 @@ compatibility_date = "2023-06-28"
 [build]
 command = "./build.sh"
 
-# WebAssemblyモジュールルール
+# 静的アセットの設定
+[site]
+bucket = "./wasm"
+# 開発環境用の設定
+include = ["*.wasm"]
+exclude = []
+
 [[rules]]
 type = "CompiledWasm"
-globs = ["wasm/*.wasm"]
-fallthrough = true  # 次のルールに進むことを許可
-
-# 環境設定
-[env.production]
-name = "bra-b-backend"
-route = { pattern = "api.bra-b.com/*", zone_name = "bra-b.com" }
-
-[env.development]
-name = "bra-b-backend-dev"
+globs = ["**/*.wasm"]
+fallthrough = true

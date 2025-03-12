@@ -4,8 +4,10 @@
 package main
 
 import (
-	"net/http"
-
+	"github.com/aiirononeko/bra-b/app/backend/src/externals/repositories/memory"
+	"github.com/aiirononeko/bra-b/app/backend/src/presentations"
+	"github.com/aiirononeko/bra-b/app/backend/src/queries"
+	"github.com/aiirononeko/bra-b/app/backend/src/workflows"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -19,7 +21,18 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	// ルートを設定
+	// リポジトリの初期化
+	todoRepo := memory.NewInMemoryTodoRepository()
+
+	// クエリとワークフローの初期化
+	todoQuery := queries.NewTodoQuery(todoRepo)
+	todoWorkflow := workflows.NewTodoWorkflow(todoRepo)
+
+	// ハンドラーの初期化と登録
+	todoHandler := presentations.NewTodoHandler(todoQuery, todoWorkflow)
+	todoHandler.RegisterRoutes(e)
+
+	// 既存のルートも維持
 	e.GET("/", hello)
 	e.GET("/api/hello", hello)
 
@@ -29,7 +42,7 @@ func main() {
 
 // ハンドラー
 func hello(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
+	return c.JSON(200, map[string]string{
 		"message": "Hello, World!",
 	})
 }

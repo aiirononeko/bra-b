@@ -1,32 +1,16 @@
 {
-  "name": "backend",
+  "name": "bra-b-backend",
   "version": "0.1.0",
+  "description": "Backend API for bra-B application",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "pnpm wrangler dev src/index.ts",
-    "deploy": "pnpm wrangler deploy --minify src/index.ts",
-    "build": "esbuild --bundle --format=esm --platform=browser --outfile=dist/index.js src/index.ts",
-    "lint": "biome check src",
-    "format": "biome format src --write",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "build": "./build.sh",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env production",
+    "deploy:dev": "wrangler deploy --env development"
   },
   "dependencies": {
-    "hono": "^4.1.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@cloudflare/workers-types": "^4.20240320.0",
-    "@types/node": "^20.11.24",
-    "@vitest/coverage-v8": "^3.0.8",
-    "@vitest/ui": "^3.0.8",
-    "esbuild": "^0.20.1",
-    "eslint": "^8.57.0",
-    "typescript": "^5.3.3",
-    "vitest": "^3.0.8",
-    "wrangler": "^3.32.0"
+    "wrangler": "^3.34.2"
   }
 }

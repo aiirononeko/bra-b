@@ -1,12 +1,20 @@
 name = "bra-b-backend"
-main = "src/index.ts"
-compatibility_date = "2024-03-09"
+main = "worker.js"
+compatibility_date = "2023-06-28"
 
-[dev]
-port = 8787
+[build]
+command = "./build.sh"
 
-[vars]
-API_VERSION = "v1"
+# WebAssemblyモジュールルール
+[[rules]]
+type = "CompiledWasm"
+globs = ["wasm/*.wasm"]
+fallthrough = true  # 次のルールに進むことを許可
 
-[http_headers]
-"/*" = { Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization" }
+# 環境設定
+[env.production]
+name = "bra-b-backend"
+route = { pattern = "api.bra-b.com/*", zone_name = "bra-b.com" }
+
+[env.development]
+name = "bra-b-backend-dev"

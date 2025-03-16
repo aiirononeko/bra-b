@@ -3,9 +3,12 @@ description:
 globs: 
 alwaysApply: true
 ---
-## コミットルール
+## コミットメッセージルール
 
-- コミットメッセージには必ず変更内容とその理由を明記すること。
-- AI生成したコードであることをコミットメッセージに明記する場合、接頭辞 `[AI generated]` を使用すること。
-- DB変更に伴うコミットは `[migration]` のプレフィックスを付けること。
-- READMEの更新時は `[docs]` のプレフィックスを付けること。
+すべてのコミットメッセージは[Conventional Commits v1.0.0](mdc:https:/www.conventionalcommits.org/en/v1.0.0/#summary) に準拠すること。
+
+### 使用例
+
+- 機能追加の場合、feat: add evaluation tags selection UI
+- ドキュメント更新は`docs:`を接頭辞に使用する
+- DBマイグレーション変更は`chore:`または`migration:`を推奨する

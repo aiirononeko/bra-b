@@ -1,162 +1,189 @@
-# bra-B
+# ☕️ bra-B (ブラービ)
 
-bra-B（ブラービ）は、バリスタのためのブランディングツールです。
-カスタマーにより客観的に評価されることで、自身のスキルを可視化し、バリスタとしてのキャリアを支援します。
+バリスタ個人がファンを獲得し、客観的評価とチップを受け取れるサービスです。
 
-## 技術スタック
+## 🚀 サービスの目的・特徴
 
-### フロントエンド
-- React (UI ライブラリ)
-- TanStack Router (型安全なルーティング)
-- TanStack Query (サーバー状態管理)
-- Vite (ビルドツール)
+- バリスタ個人のプロフェッショナルな価値を可視化し、ファンを作れるようにする
+- カスタマーが 10 秒以内の手軽な評価でバリスタを応援できる
+- バリスタは評価とチップにより自己ブランディングと金銭的メリットを得られる
 
-### バックエンド
-- Hono (高速なWebフレームワーク)
-- Cloudflare Workers (エッジコンピューティング)
+## 🗂 技術スタック・アーキテクチャ
 
-### 開発ツール
-- Biome (リンターとフォーマッター)
-- pnpm (パッケージマネージャー)
-- Turborepo (モノレポ管理)
-- TypeScript (型システム)
-- Vitest (テストフレームワーク)
+| 項目                       | 技術選定                |
+| -------------------------- | ----------------------- |
+| バックエンド               | Golang                  |
+| フロントエンド             | React                   |
+| インフラ（サーバレス環境） | AWS Lambda              |
+| データベース               | AWS RDS PostgreSQL      |
+| ORM                        | GORM                    |
+| CDN・ドメイン管理          | AWS CloudFront・Route53 |
+| SSL 証明書                 | AWS ACM                 |
 
-### インフラ
-- Cloudflare Pages (フロントエンドホスティング)
-- Cloudflare Workers (バックエンドホスティング)
-- GitHub Actions (CI/CD)
+## 🔨 設計方針
 
-## プロジェクト構造
+- ドメイン駆動設計（DDD）＋ レイヤードアーキテクチャを採用
+- Golang を使用してリポジトリ層を明確化
+- PostgreSQL を用いた柔軟かつ効率的なデータ設計
 
-```
-bra-b/
-├── app/                          # アプリケーションコード
-│   ├── frontend/                 # フロントエンドアプリ (React)
-│   │   ├── src/                  # ソースコード
-│   │   ├── public/               # 静的ファイル
-│   │   │   └── _routes.json      # SPAルーティング設定
-│   │   └── wrangler.toml         # Cloudflare Pages設定
-│   └── backend/                  # バックエンドAPI (Hono)
-│       ├── src/                  # ソースコード
-│       │   ├── index.ts          # エントリーポイント
-│       │   ├── utils/            # ユーティリティ関数
-│       │   └── tests/            # テストファイル
-│       ├── wrangler.toml         # Cloudflare Workers設定
-│       └── vitest.config.ts      # Vitestの設定
-├── .github/                      # GitHub関連ファイル
-│   └── workflows/                # GitHub Actionsワークフロー
-│       ├── deploy-frontend.yml   # フロントエンドデプロイ
-│       ├── deploy-backend.yml    # バックエンドデプロイ
-│       ├── lint-format.yml       # リント・フォーマットチェック
-│       └── test.yml              # テスト実行
-├── package.json                  # ルートパッケージ設定
-├── pnpm-workspace.yaml           # ワークスペース設定
-├── turbo.json                    # Turborepo設定
-├── biome.json                    # Biome設定
-├── COMMANDS.md                   # コマンドラインガイド
-└── README.md                     # プロジェクト概要
-```
+## 🗃 データモデル（ER 図）
 
-## 開発方法
+```mermaid
+erDiagram
 
-### 必要な環境
-- Node.js 18.x+
-- pnpm 10.x+
+User ||--o{ Profile : has
+User ||--o{ Evaluation : evaluates
+User ||--o{ Tip : gives
 
-### セットアップ
-```bash
-# 依存関係のインストール
-pnpm install
-```
+Profile ||--o{ Evaluation : receives
+Profile ||--o{ Tip : receives
 
-### 開発サーバーの起動
-```bash
-# フロントエンドとバックエンドの両方を起動
-pnpm dev
+Evaluation ||--o{ EvaluationDetail : has
+EvaluationDetail }o--|| EvaluationItem : references
 
-# または個別に起動
-pnpm --filter=./app/frontend dev    # フロントエンドのみ
-pnpm --filter=./app/backend dev  # バックエンドのみ
-```
+User {
+  UUID id PK
+  string email
+  string auth_type
+  datetime created_at
+  datetime updated_at
+  datetime deleted_at
+}
 
-### リンティングとフォーマット
-```bash
-# リンティング
-pnpm lint
+Profile {
+  UUID id PK
+  UUID user_id FK
+  string type
+  string display_name
+  string icon_url
+  string bio
+  string sns_links
+  string shop_name
+  datetime created_at
+}
 
-# フォーマット
-pnpm format
+Evaluation {
+  UUID id PK
+  UUID barista_profile_id FK
+  UUID evaluator_user_id FK
+  datetime evaluated_at
+}
 
-# リントとフォーマットを同時に適用
-pnpm check
-```
+EvaluationDetail {
+  UUID id PK
+  UUID evaluation_id FK
+  UUID evaluation_item_id FK
+}
 
-### テスト実行
-```bash
-# 全テストを実行
-pnpm test
+EvaluationItem {
+  UUID id PK
+  UUID category_id FK
+  string name
+  bool is_common
+  bool is_active
+  int sort_order
+  datetime created_at
+}
 
-# バックエンドのテストのみ実行
-pnpm test:backend
-
-# カバレッジレポート付きでテスト実行
-pnpm test:backend:coverage
-
-# UI モードでテスト実行（開発時）
-cd app/backend && pnpm test:ui
+Tip {
+  UUID id PK
+  UUID barista_profile_id FK
+  UUID sender_user_id FK
+  float amount
+  datetime sent_at
+  string payment_info
+}
 ```
 
-## デプロイ方法
+## 📚 データ構造 (GORM モデル)
 
-### フロントエンド (Cloudflare Pages)
-```bash
-# ルートディレクトリから
-pnpm deploy:frontend
+<details><summary>展開して表示（GORMモデルの詳細）</summary>
+
+```go
+type User struct {
+	ID        string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Email     string         `gorm:"uniqueIndex;not null"`
+	AuthType  string         `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Profile   Profile
+}
+
+type Profile struct {
+	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID      string    `gorm:"type:uuid;uniqueIndex;not null"`
+	Type        string    `gorm:"type:varchar(20);not null"`
+	DisplayName string    `gorm:"type:varchar(100);not null"`
+	IconURL     string    `gorm:"type:text"`
+	Bio         string    `gorm:"type:text"`
+	SNSLinks    string    `gorm:"type:text"`
+	ShopName    string    `gorm:"type:varchar(100)"`
+	CreatedAt   time.Time
+	User        User      `gorm:"foreignKey:UserID"`
+}
+
+type Evaluation struct {
+	ID               string             `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	BaristaProfileID string             `gorm:"type:uuid;index;not null"`
+	EvaluatorUserID  *string            `gorm:"type:uuid;index"`
+	EvaluatedAt      time.Time          `gorm:"autoCreateTime"`
+	EvaluationDetails []EvaluationDetail `gorm:"foreignKey:EvaluationID"`
+	BaristaProfile   Profile            `gorm:"foreignKey:BaristaProfileID"`
+	EvaluatorUser    User               `gorm:"foreignKey:EvaluatorUserID"`
+}
+
+type EvaluationCategory struct {
+	ID              string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Name            string `gorm:"not null"`
+	SortOrder       int
+	IsActive        bool      `gorm:"default:true"`
+	CreatedAt       time.Time
+	EvaluationItems []EvaluationItem `gorm:"foreignKey:CategoryID"`
+}
+
+type EvaluationItem struct {
+	ID          string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	CategoryID  *string `gorm:"type:uuid;index"`
+	Name        string `gorm:"not null"`
+	IsCommon    bool   `gorm:"default:false"`
+	IsActive    bool   `gorm:"default:true"`
+	SortOrder   int
+	CreatedAt   time.Time
+}
+
+type EvaluationDetail struct {
+	ID               string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EvaluationID     string `gorm:"type:uuid;index;not null"`
+	EvaluationItemID string `gorm:"type:uuid;index;not null"`
+}
+
+type Tip struct {
+	ID               string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	BaristaProfileID string         `gorm:"type:uuid;index;not null"`
+	SenderUserID     string         `gorm:"type:uuid;index"`
+	Amount           float64        `gorm:"not null"`
+	SentAt           time.Time
+	PaymentInfo      string         `gorm:"type:text"`
+}
 ```
 
-デプロイURL: `https://bra-b.com`
+</details>
 
-#### SPAルーティング
-フロントエンドはSPA（Single Page Application）として設定されており、クライアントサイドルーティングが有効です。これは `public/_routes.json` ファイルで設定されています。
+## ✅ 評価システム設計
 
-### バックエンド (Cloudflare Workers)
-```bash
-# ルートディレクトリから
-pnpm deploy:backend
-```
+- 数値評価・自由記述はなし
+- カテゴリ＋タグ選択のシンプルな評価（10 秒以内で完結）
+- 自由記述はチップ送信時のみ可能
 
-デプロイURL: `https://api.bra-b.com`
+### 📌 評価カテゴリ・評価タグ
 
-より詳細なコマンドについては [COMMANDS.md](./COMMANDS.md) を参照してください。
+| カテゴリ     | 評価タグ                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| 接客         | 笑顔が素敵, 気遣いがある, 丁寧な接客, 説明がわかりやすい, 会話が心地よい                         |
+| ドリンク品質 | ラテアートが美しい, 味が素晴らしい, 温度が適切, 品質が安定している, ドリンクへのこだわりを感じる |
+| サービス     | 提供がスピーディー, 注文がスムーズ, 無駄な動きがない, 丁寧な作業                                 |
 
-## CI/CD パイプライン
-
-このプロジェクトでは、GitHub Actionsを使用して以下のCI/CDパイプラインが構成されています：
-
-### 1. リントとフォーマットチェック
-- すべてのプッシュとプルリクエストで実行
-- コードスタイルとルールの遵守を確認
-
-### 2. テスト実行
-- すべてのプッシュとプルリクエストで実行
-- カバレッジレポートも生成
-
-### 3. フロントエンドデプロイ
-- mainブランチへのプッシュ時に実行
-- app/frontend ディレクトリの変更があった場合のみトリガー
-
-### 4. バックエンドデプロイ
-- mainブランチへのプッシュ時に実行
-- app/backend ディレクトリの変更があった場合のみトリガー
-
-## 開発ワークフロー
-
-1. 機能ブランチを作成
-2. コードを変更
-3. `pnpm format` でコードをフォーマット
-4. `pnpm lint` でリントチェック
-5. `pnpm test` でテスト実行
-6. `pnpm build` でビルド確認
-7. PRを作成して本番ブランチにマージ
-8. CIによる自動デプロイ(GitHub Actions)
+| 共通タグ（任意選択）                               |     |
+| -------------------------------------------------- | --- |
+| またお願いしたい, プロフェッショナル, 親しみやすい |     |

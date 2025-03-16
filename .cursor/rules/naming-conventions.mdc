@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## 命名規則
+
+- 変数名はcamelCaseを使用する。
+- DBカラム名および構造体フィールド名はsnake_caseを使用する。
+- モデル名および構造体名は単数形とする（例：User、Profile、Evaluation）。
+- テーブル名は複数形とする（GORMのデフォルトを使用）。
+- プライマリーキーのフィールド名は`id`（型はUUID）で統一する。
+- 外部キーの命名は `{テーブル名単数形}_id` とする（例: `user_id`）。

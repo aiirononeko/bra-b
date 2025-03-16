@@ -186,3 +186,109 @@ type Tip struct {
 | 共通タグ（任意選択）                               |
 | -------------------------------------------------- |
 | またお願いしたい, プロフェッショナル, 親しみやすい |
+
+## 🛠 バックエンド API 設計方針
+
+バックエンド（Golang）とフロントエンド（TypeScript）の間でリクエスト・レスポンスの型を手軽かつ明快に共有するために、以下の方針を採用します。
+
+### 📌 型定義の管理方法
+
+- 型定義はフロントエンド（TypeScript 側）を起点とする
+- Golang 側は TypeScript 側で定義された型に合わせて構造体を作成する
+- OpenAPI などの重い仕組みは採用しない（管理が複雑になるため）
+
+理由:
+
+- シンプルで管理が容易
+- フロントエンドの型定義がそのまま API 仕様書になる
+- 開発初期に最適（変更にも強い）
+
+## 🚦 バックエンドで実装が必要なエンドポイント一覧
+
+### 🔐 認証・ユーザー関連
+
+| Method | Endpoint         | 説明                         |
+| ------ | ---------------- | ---------------------------- |
+| POST   | /auth/magic-link | メールに MagicLink を送信    |
+| POST   | /auth/google     | Google OAuth 認証            |
+| GET    | /user/me         | ログイン中ユーザー情報の取得 |
+
+### 👤 バリスタプロフィール関連
+
+| Method | Endpoint                          | 説明                         |
+| ------ | --------------------------------- | ---------------------------- |
+| POST   | /baristas                         | バリスタプロフィールの作成   |
+| PUT    | /baristas/{baristaId}             | バリスタプロフィールの更新   |
+| GET    | /baristas/{baristaId}             | バリスタプロフィールの取得   |
+| GET    | /baristas/{baristaId}/evaluations | バリスタ視点で評価一覧を取得 |
+
+### 📝 評価関連
+
+| Method | Endpoint               | 説明                         |
+| ------ | ---------------------- | ---------------------------- |
+| GET    | /evaluation/categories | 評価カテゴリ・タグ一覧の取得 |
+| POST   | /evaluations           | カスタマーがバリスタを評価   |
+
+### 💰 チップ関連
+
+| Method | Endpoint                   | 説明                           |
+| ------ | -------------------------- | ------------------------------ |
+| POST   | /tips                      | チップ送信（コメント任意）     |
+| GET    | /baristas/{baristaId}/tips | バリスタが受け取ったチップ一覧 |
+
+## 📝 型定義の具体例（TypeScript）
+
+実際の型定義例は以下の通りです。
+
+<details> <summary>型定義（展開して表示）</summary>
+
+```typescript
+// 認証リクエスト（MagicLink）
+type AuthRequest = {
+  email: string;
+};
+
+type AuthResponse = {
+  token: string;
+};
+
+// バリスタプロフィール作成・更新リクエスト
+type BaristaProfileRequest = {
+  displayName: string;
+  iconUrl?: string;
+  bio?: string;
+  snsLinks?: string[];
+  shopName?: string;
+};
+
+// 評価カテゴリ・タグの取得レスポンス
+type EvaluationCategory = {
+  id: string;
+  name: string;
+  tags: {
+    id: string;
+    name: string;
+  }[];
+};
+
+type GetEvaluationCategoriesResponse = {
+  categories: EvaluationCategory[];
+  commonTags: { id: string; name: string }[];
+};
+
+// バリスタ評価リクエスト
+type EvaluateBaristaRequest = {
+  baristaId: string;
+  categoryId: string;
+  selectedTagIds: string[];
+};
+
+// チップ送信リクエスト
+type SendTipRequest = {
+  baristaId: string;
+  amount: number;
+  message?: string; // チップ送信時のみ自由記述可能
+};
+```
+
+</details>

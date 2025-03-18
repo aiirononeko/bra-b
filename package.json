@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "build:frontend": "cd app/frontend && pnpm build",
+    "build:frontend:web": "cd app/web && pnpm build",
     "build:backend": "cd app/backend && pnpm build",
     "lint": "turbo lint",
     "lint:biome": "biome check .",
@@ -19,7 +19,7 @@
     "test:backend": "cd app/backend && pnpm test",
     "test:backend:coverage": "cd app/backend && pnpm test:coverage",
     "deploy": "turbo deploy",
-    "deploy:frontend": "cd app/frontend && pnpm run deploy",
+    "deploy:frontend:web": "cd app/web && pnpm run deploy",
     "deploy:backend": "cd app/backend && pnpm run deploy"
   },
   "devDependencies": {

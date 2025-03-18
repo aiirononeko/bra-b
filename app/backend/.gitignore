@@ -1,20 +1,5 @@
 # ビルド成果物
-/wasm/*.wasm
-/wasm/wasm_exec.js
-/wasm/wasm_exec.js.original
-*.wasm.map
-
-# Node.js
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json  # npmで作成したpackage-lock.jsonはCIでのみ生成
-
-# Cloudflare Workers
-.wrangler/
-.dev.vars
-dist/
+bin/
 
 # 環境設定
 .env

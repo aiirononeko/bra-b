@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String    @unique
+  authType  String    @map("auth_type")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  profile   Profile?
+
+  // リレーション
+  evaluations  Evaluation[] @relation("evaluator")
+  receivedTips Tip[]        @relation("sender")
+  favorites    Favorite[]   @relation("user")
+
+  @@map("users")
+}
+
+model Profile {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  type        String
+  displayName String   @map("display_name")
+  iconURL     String?  @map("icon_url")
+  bio         String?
+  snsLinks    String?  @map("sns_links")
+  shopName    String?  @map("shop_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  user            User         @relation(fields: [userId], references: [id])
+  receivedEvals   Evaluation[] @relation("barista")
+  receivedTips    Tip[]        @relation("barista")
+  savedAsFavorite Favorite[]   @relation("barista")
+
+  @@map("profiles")
+}
+
+model EvaluationCategory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  evaluationItems EvaluationItem[]
+
+  @@map("evaluation_categories")
+}
+
+model EvaluationItem {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId String?  @map("category_id") @db.Uuid
+  name       String
+  isCommon   Boolean  @default(false) @map("is_common")
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  category          EvaluationCategory? @relation(fields: [categoryId], references: [id])
+  evaluationDetails EvaluationDetail[]
+
+  @@map("evaluation_items")
+}
+
+model Evaluation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  baristaProfileId String   @map("barista_profile_id") @db.Uuid
+  evaluatorUserId  String?  @map("evaluator_user_id") @db.Uuid
+  evaluatedAt      DateTime @default(now()) @map("evaluated_at")
+
+  // リレーション
+  baristaProfile    Profile            @relation("barista", fields: [baristaProfileId], references: [id])
+  evaluatorUser     User?              @relation("evaluator", fields: [evaluatorUserId], references: [id])
+  evaluationDetails EvaluationDetail[]
+
+  @@map("evaluations")
+}
+
+model EvaluationDetail {
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  evaluationId     String @map("evaluation_id") @db.Uuid
+  evaluationItemId String @map("evaluation_item_id") @db.Uuid
+
+  // リレーション
+  evaluation     Evaluation     @relation(fields: [evaluationId], references: [id])
+  evaluationItem EvaluationItem @relation(fields: [evaluationItemId], references: [id])
+
+  @@map("evaluation_details")
+}
+
+model Tip {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  baristaProfileId      String   @map("barista_profile_id") @db.Uuid
+  senderUserId          String?  @map("sender_user_id") @db.Uuid
+  amount                Float
+  message               String?
+  stripePaymentIntentId String   @unique @map("stripe_payment_intent_id")
+  sentAt                DateTime @default(now()) @map("sent_at")
+
+  // リレーション
+  baristaProfile Profile @relation("barista", fields: [baristaProfileId], references: [id])
+  senderUser     User?   @relation("sender", fields: [senderUserId], references: [id])
+
+  @@map("tips")
+}
+
+model Favorite {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  baristaProfileId String   @map("barista_profile_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  user           User    @relation("user", fields: [userId], references: [id])
+  baristaProfile Profile @relation("barista", fields: [baristaProfileId], references: [id])
+
+  @@map("favorites")
+}

@@ -10,22 +10,23 @@
 
 ## 🗂 技術スタック・アーキテクチャ
 
-| 項目                       | 技術選定                |
-| -------------------------- | ----------------------- |
-| バックエンド               | Golang                  |
-| フロントエンド             | React                   |
-| インフラ（サーバレス環境） | AWS Lambda              |
-| データベース               | AWS RDS PostgreSQL      |
-| ORM                        | GORM                    |
-| CDN・ドメイン管理          | AWS CloudFront・Route53 |
-| SSL 証明書                 | AWS ACM                 |
-| インフラ構成管理           | Terraform               |
+| 項目                       | 技術選定                   |
+| -------------------------- | -------------------------- |
+| バックエンド               | Golang / TypeScript (Hono) |
+| フロントエンド             | React                      |
+| インフラ（サーバレス環境） | AWS Lambda                 |
+| データベース               | AWS RDS PostgreSQL         |
+| ORM                        | GORM / Prisma              |
+| CDN・ドメイン管理          | AWS CloudFront・Route53    |
+| SSL 証明書                 | AWS ACM                    |
+| インフラ構成管理           | Terraform                  |
 
 ## 🔨 設計方針
 
 - ドメイン駆動設計（DDD）＋ レイヤードアーキテクチャを採用
 - PostgreSQL を用いた柔軟かつ効率的なデータ設計
 - Infrastructure as Code (Terraform) によるインフラ管理
+- TypeScript バックエンドを追加実装（Golang 版と並行運用）
 
 ## 🗃 データモデル（ER 図）
 
@@ -388,3 +389,29 @@ terraform/                # Terraformコード
 ```
 
 詳細な Terraform の使用方法は [terraform/README.md](./terraform/README.md) を参照してください。
+
+## 🔧 TypeScript バックエンド
+
+本プロジェクトでは、Golang バックエンドと並行して、TypeScript を使用した代替実装を提供しています。
+
+### 📋 特徴
+
+- **Hono**: 軽量かつ高速な Web フレームワーク
+- **Prisma**: タイプセーフな ORM
+- **DDD + レイヤードアーキテクチャ**: クリーンな設計とコード構造
+- **JWT 認証**: セキュアなユーザー認証
+
+### 📁 ディレクトリ構成
+
+```
+app/backend-ts/          # TypeScriptバックエンド
+├── src/                 # ソースコード
+│   ├── domain/          # ドメイン層
+│   ├── repositories/    # リポジトリ実装
+│   ├── services/        # サービス層
+│   ├── routes/          # APIルート
+│   └── factories/       # 依存性注入
+└── README.md            # 詳細な使用方法
+```
+
+詳細なセットアップと使用方法は [app/backend-ts/README.md](./app/backend-ts/README.md) を参照してください。

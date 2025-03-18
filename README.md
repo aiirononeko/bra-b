@@ -19,11 +19,13 @@
 | ORM                        | GORM                    |
 | CDN・ドメイン管理          | AWS CloudFront・Route53 |
 | SSL 証明書                 | AWS ACM                 |
+| インフラ構成管理           | Terraform               |
 
 ## 🔨 設計方針
 
 - ドメイン駆動設計（DDD）＋ レイヤードアーキテクチャを採用
 - PostgreSQL を用いた柔軟かつ効率的なデータ設計
+- Infrastructure as Code (Terraform) によるインフラ管理
 
 ## 🗃 データモデル（ER 図）
 
@@ -347,3 +349,42 @@ type FavoriteListResponse = {
 ```
 
 </details>
+
+## 🏗 インフラ構成管理 (Terraform)
+
+本プロジェクトではインフラ構成の管理と自動化に Terraform を使用しています。AWS 上に以下のリソースをコード管理しています：
+
+- **API Gateway**: HTTP リクエストの受付と Lambda へのルーティング
+- **Lambda 関数**: Go バックエンドの実行環境
+- **RDS PostgreSQL**: データベース
+- **VPC**: セキュアなネットワーク環境
+- **CloudWatch**: ログ管理とモニタリング
+
+### 📁 ディレクトリ構成
+
+```
+terraform/                # Terraformコード
+├── modules/              # 再利用可能なモジュール
+│   ├── vpc/              # ネットワーク関連
+│   ├── database/         # RDS PostgreSQL
+│   ├── lambda/           # Lambda関数
+│   └── api_gateway/      # API Gateway
+├── environments/         # 環境別設定
+│   ├── dev/              # 開発環境
+│   └── prod/             # 本番環境
+└── README.md             # 詳細な使用方法
+```
+
+### 🚀 デプロイ方法
+
+プロジェクトのデプロイは以下のコマンドで実行できます：
+
+```bash
+# 開発環境へのデプロイ
+./scripts/deploy.sh dev
+
+# 本番環境へのデプロイ
+./scripts/deploy.sh prod
+```
+
+詳細な Terraform の使用方法は [terraform/README.md](./terraform/README.md) を参照してください。

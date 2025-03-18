@@ -1,13 +1,10 @@
 # bra-B バックエンド
 
-bra-B（ブラービ）のバックエンドは、Golang で実装されたレイヤードアーキテクチャに基づいた API 基盤です。
+bra-B（ブラービ）のバックエンドは、Golang で実装されたドメイン駆動設計（DDD）に基づいたレイヤードアーキテクチャの API サーバーです。本番環境では AWS Lambda で実行されます。
 
 ## アプリケーションの概要
 
-bra-B(ブラービ)は、バリスタがセルフブランディングしたり、カスタマーから客観的な評価を受けることができる Web サービスです。
-バリスタは bra-B を通して、自身のプロフィールを全世界に発信できます。
-カスタマーはバリスタのページからバリスタを評価することで、バリスタは自身の評価を確認できます。
-カスタマーの評価にも工夫があり、bra-B 独自の評価システムによってよりプロフェッショナルを客観的に評価することができます。
+bra-B(ブラービ)は、バリスタがセルフブランディングしたり、カスタマーから客観的な評価を受けることができる Web サービスです。バリスタは bra-B を通して、自身のプロフィールを全世界に発信できます。カスタマーはバリスタのページからバリスタを評価することで、バリスタは自身の評価を確認できます。また、チップ機能によりバリスタを金銭的に応援することも可能です。
 
 ## アーキテクチャ
 
@@ -16,21 +13,34 @@ bra-B(ブラービ)は、バリスタがセルフブランディングしたり�
 ### ディレクトリ構造
 
 ```
-app/backend/src/
-├── domain/             # ドメイン層（ビジネスロジックとエンティティ）
-│   ├── models/         # ドメインモデルとそのロジック
-│   │   └── todo/       # Todoドメインモデル
-│   │       └── entity/ # Todoエンティティの定義
-│   └── repositories/   # リポジトリのインターフェース
-├── externals/          # 外部サービスとの連携
-│   └── repositories/   # リポジトリの実装
-│       └── memory/     # インメモリ実装
-├── presentations/      # プレゼンテーション層（API定義など）
-├── queries/            # クエリ処理（データ取得）
-├── shared/             # 共有モジュールやユーティリティ
-├── workflows/          # ワークフロー（書き込み処理）
-├── main.go             # エントリーポイント
-└── main_wasm.go        # WebAssembly用エントリーポイント
+app/backend/
+├── src/                  # ソースコード
+│   ├── cmd/              # エントリーポイント
+│   │   ├── lambda/       # AWS Lambda用エントリーポイント
+│   │   ├── migration/    # データベースマイグレーション
+│   │   └── server/       # HTTPサーバー用エントリーポイント
+│   ├── domain/           # ドメイン層（ビジネスロジックとエンティティ）
+│   │   ├── models/       # ドメインモデルとそのロジック
+│   │   │   ├── user/     # ユーザードメイン
+│   │   │   ├── profile/  # プロフィールドメイン
+│   │   │   ├── evaluation/ # 評価ドメイン
+│   │   │   ├── tip/      # チップドメイン
+│   │   │   └── favorite/ # お気に入りドメイン
+│   │   └── repositories/ # リポジトリのインターフェース
+│   ├── externals/        # 外部サービスとの連携
+│   │   ├── db/           # データベース接続
+│   │   └── repositories/ # リポジトリの実装（GORM）
+│   ├── presentations/    # プレゼンテーション層（API定義など）
+│   │   ├── handlers/     # HTTPハンドラー
+│   │   ├── middleware/   # ミドルウェア
+│   │   └── routers/      # ルーター
+│   ├── queries/          # クエリ処理（データ取得）
+│   ├── shared/           # 共有モジュールやユーティリティ
+│   └── workflows/        # ワークフロー（書き込み処理）
+├── bin/                  # ビルド成果物
+├── Makefile              # ビルドとデプロイの自動化
+├── docker-compose.dev.yml # 開発環境用Docker Compose
+└── Dockerfile            # 本番環境用Dockerfile
 ```
 
 ### レイヤー構成
@@ -42,7 +52,11 @@ app/backend/src/
    - `models/`: ドメインモデルとそのロジックを定義します。
    - `repositories/`: データアクセスのためのインターフェースを定義します。
 
-2. **プレゼンテーション層** (`presentations/`): HTTP リクエストの処理を担当します。
+2. **プレゼンテーション層** (`presentations/`): HTTP リクエストと Lambda イベントの処理を担当します。
+
+   - `handlers/`: HTTP リクエストハンドラー
+   - `middleware/`: 認証などの共通処理
+   - `routers/`: API エンドポイントとハンドラーのマッピング
 
 3. **クエリ層** (`queries/`): データの読み取り処理を担当します。
 
@@ -50,7 +64,8 @@ app/backend/src/
 
 5. **外部層** (`externals/`): データベースや API など外部サービスとの連携を実装します。
 
-   - `repositories/memory/`: リポジトリのインメモリ実装。
+   - `db/`: PostgreSQL データベース接続
+   - `repositories/`: リポジトリの実装（GORM による OR マッピング）
 
 6. **共有層** (`shared/`): エラー型や共通ユーティリティを提供します。
 
@@ -61,72 +76,119 @@ app/backend/src/
 ```
 presentations → workflows/queries → domain
                                      ↑
-                     externals/repositories
+                    externals/repositories
 ```
 
-## 利用可能なエンドポイント
+## データベースモデル
 
-現在、以下のエンドポイントが実装されています：
+PostgreSQL データベースに以下のテーブルが定義されています：
 
-### 基本エンドポイント
+- `users` - ユーザー情報
+- `profiles` - バリスタやカスタマーのプロフィール
+- `evaluation_categories` - 評価カテゴリ
+- `evaluation_items` - 評価項目
+- `evaluations` - バリスタへの評価
+- `evaluation_details` - 評価の詳細
+- `tips` - バリスタへのチップ
+- `favorites` - バリスタのお気に入り登録
 
-- `GET /`: "Hello, World!"メッセージを返します
-- `GET /api/hello`: "Hello, World!"メッセージを返します
+## 主要な API 機能
 
-### Todo API
+現在、以下の機能が実装されています：
 
-- `GET /api/todos`: 全ての Todo を取得します
-- `GET /api/todos/:id`: 指定された ID の Todo を取得します
-- `POST /api/todos`: 新しい Todo を作成します
-  - リクエスト例: `{ "title": "買い物", "description": "牛乳を買う" }`
-- `PUT /api/todos/:id`: 既存の Todo を更新します
-  - リクエスト例: `{ "title": "買い物", "description": "牛乳と卵を買う", "completed": true }`
-- `DELETE /api/todos/:id`: 指定された ID の Todo を削除します
+- ユーザー管理（認証、ユーザー情報取得）
+- プロフィール管理（バリスタプロフィール作成・更新・閲覧）
+- 評価システム（バリスタ評価の登録・取得）
+- チップ機能（バリスタへのチップ送信・履歴取得）
+- お気に入り機能（バリスタのお気に入り登録・解除）
 
-## WebAssembly 対応
+## 開発環境のセットアップ
 
-バックエンドは WebAssembly (WASM) にも対応しており、ブラウザで直接実行できる関数を提供しています：
+### 前提条件
 
-- `getHelloMessage()`: "Hello, World from WebAssembly!"メッセージを返します
-- `getAllTodos()`: 全ての Todo を取得します
-- `getTodoById(id)`: 指定された ID の Todo を取得します
-- `createTodo(input)`: 新しい Todo を作成します
-- `updateTodo(id, input)`: 既存の Todo を更新します
-- `deleteTodo(id)`: 指定された ID の Todo を削除します
+- Go 1.21 以上
+- Docker および Docker Compose
+- AWS SAM CLI（オプション、Lambda 開発用）
 
-## 実行環境
+### 開発環境の起動方法
 
-### ローカル開発環境
-
-1. Go のインストール (バージョン 1.24 以上)
-2. 依存関係のインストール: `go mod download`
-3. サーバーの起動: `go run src/main.go`
-
-デフォルトでは、サーバーは `http://localhost:8080` で起動します。
-
-### Cloudflare Workers
-
-本アプリケーションは Cloudflare Workers 上でも動作します。
-
-1. WebAssembly ビルド: `GOOS=js GOARCH=wasm go build -o wasm/main.wasm src/main_wasm.go`
-2. wasm_exec.js のコピー: `cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" wasm/`
-3. ローカル開発サーバーの起動: `npx wrangler dev`
-4. デプロイ: `npx wrangler publish`
-
-Cloudflare Workers 上では、`worker.js` がエントリーポイントとなり、WebAssembly 関数を呼び出して API として提供します。
-
-## ビルド方法
-
-### 通常のバイナリビルド
+1. リポジトリをクローン
 
 ```bash
-go build -o server src/main.go
+git clone https://github.com/aiirononeko/bra-b.git
+cd bra-b/app/backend
 ```
 
-### WebAssembly ビルド
+2. 依存関係のインストール
 
 ```bash
-GOOS=js GOARCH=wasm go build -o wasm/main.wasm src/main_wasm.go
+go mod download
+```
+
+3. 開発環境の起動
+
+```bash
+make dev
+```
+
+このコマンドは以下の処理を行います：
+
+- PostgreSQL データベースコンテナの起動
+- データベースマイグレーションとシードデータの投入
+- 実行モードの選択プロンプト表示（サーバーモードまたは Lambda モード）
+
+4. 利用可能な実行モード
+
+- サーバーモード：通常の HTTP サーバーとして実行されます（ホットリロード付き）
+- Lambda モード：AWS SAM CLI を使用して Lambda 関数をローカルで実行します
+
+### API エンドポイント
+
+開発環境では以下のエンドポイントが利用可能です：
+
+- `GET /health`: ヘルスチェック
+- `GET /api/evaluation/categories`: 評価カテゴリと評価項目を取得
+- その他実装済みの API エンドポイント
+
+## ビルドとデプロイ
+
+### ビルド
+
+```bash
+# 通常のサーバーとしてビルド
+make build
+
+# AWS Lambda用にビルド
+make build-lambda
+
+# Lambda用デプロイパッケージ作成
+make package-lambda
+```
+
+### デプロイ
+
+AWS CDK を使用して Lambda 関数と API ゲートウェイをデプロイします：
+
+```bash
+# インフラストラクチャのデプロイ
+cd ../../infra
+npm run deploy
+```
+
+## その他の便利なコマンド
+
+```bash
+# マイグレーションのみ実行
+make migrate
+
+# テスト実行
+make test
+
+# 依存関係の更新
+make mod
+
+# ビルド成果物のクリーン
+make clean
 ```
 
 ## エラー処理

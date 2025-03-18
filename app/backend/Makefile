@@ -48,13 +48,18 @@ dev-lambda: check-db-container migrate build-lambda
 		echo "\033[1;33mインストール方法: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html\033[0m"; \
 	fi
 
-# ビルド
+# Lambda用ビルド (provided.al2ランタイム用)
 build-lambda:
-	GOOS=linux GOARCH=amd64 go build -o bin/lambda src/cmd/lambda/main.go
+	@echo "\033[0;34mLambda関数をビルドしています (provided.al2用)...\033[0m"
+	@mkdir -p bin
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -o bin/bootstrap src/cmd/lambda/main.go
+	@chmod +x bin/bootstrap
 
 # Lambda用デプロイパッケージ作成
 package-lambda: build-lambda
-	zip -j bin/lambda.zip bin/lambda
+	@echo "\033[0;34mLambdaデプロイパッケージを作成しています...\033[0m"
+	@rm -f bin/lambda.zip
+	cd bin && zip -j lambda.zip bootstrap
 
 # マイグレーションビルド
 build-migration:

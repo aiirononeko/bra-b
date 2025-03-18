@@ -1,6 +1,7 @@
 package presentations
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/aiirononeko/bra-b/app/backend/src/queries"
@@ -21,8 +22,16 @@ func NewEvaluationHandler(evaluationQuery *queries.EvaluationQuery) *EvaluationH
 
 // RegisterRoutes はルーティングを登録します
 func (h *EvaluationHandler) RegisterRoutes(e *echo.Echo) {
+	// API グループは /api プレフィックスを持つ
 	evaluationGroup := e.Group("/api")
+
+	// 評価カテゴリ関連のルート
 	evaluationGroup.GET("/evaluation/categories", h.GetEvaluationCategories)
+
+	// デバッグ用にルートをログに出力
+	for _, route := range e.Routes() {
+		log.Printf("Registered route: %s %s", route.Method, route.Path)
+	}
 }
 
 // EvaluationCategoryResponse は評価カテゴリと評価項目のレスポンス形式です

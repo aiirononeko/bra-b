@@ -4,7 +4,7 @@ bin/
 # 環境設定
 .env
 .env.local
-.env.development
+.env.dev
 .env.production
 
 # エディタ・IDE
@@ -19,3 +19,9 @@ Thumbs.db
 
 # ログファイル
 *.log
+
+# データベース
+*.db
+*.db-shm
+*.db-wal
+*.db-journal

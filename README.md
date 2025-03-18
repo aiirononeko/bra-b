@@ -33,12 +33,15 @@ erDiagram
 User ||--o{ Profile : has
 User ||--o{ Evaluation : evaluates
 User ||--o{ Tip : gives
+User ||--o{ Favorite : saves
 
 Profile ||--o{ Evaluation : receives
 Profile ||--o{ Tip : receives
+Profile ||--o{ Favorite : saved_by
 
 Evaluation ||--o{ EvaluationDetail : has
 EvaluationDetail }o--|| EvaluationItem : references
+EvaluationItem ||--o{ EvaluationCategory : belongs_to
 
 User {
   UUID id PK
@@ -84,6 +87,14 @@ EvaluationItem {
   datetime created_at
 }
 
+EvaluationCategory {
+  UUID id PK
+  string name
+  bool is_active
+  int sort_order
+  datetime created_at
+}
+
 Tip {
   UUID id PK
   UUID barista_profile_id FK
@@ -91,6 +102,15 @@ Tip {
   float amount
   datetime sent_at
   string payment_info
+  string message
+  string stripe_payment_intent_id
+}
+
+Favorite {
+  UUID id PK
+  UUID user_id FK
+  UUID barista_profile_id FK
+  datetime created_at
 }
 ```
 
@@ -158,12 +178,24 @@ type EvaluationDetail struct {
 }
 
 type Tip struct {
-	ID               string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	BaristaProfileID string         `gorm:"type:uuid;index;not null"`
-	SenderUserID     string         `gorm:"type:uuid;index"`
-	Amount           float64        `gorm:"not null"`
-	SentAt           time.Time
-	PaymentInfo      string         `gorm:"type:text"`
+	ID                    string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	BaristaProfileID      string         `gorm:"type:uuid;index;not null"`
+	SenderUserID          string         `gorm:"type:uuid;index"`
+	Amount                float64        `gorm:"not null"`
+	Message               string         `gorm:"type:text"`
+	StripePaymentIntentID string         `gorm:"type:varchar(100);not null;uniqueIndex"`
+	SentAt                time.Time
+	BaristaProfile        Profile        `gorm:"foreignKey:BaristaProfileID"`
+	SenderUser            User           `gorm:"foreignKey:SenderUserID"`
+}
+
+type Favorite struct {
+	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID           string    `gorm:"type:uuid;index;not null"`
+	BaristaProfileID string    `gorm:"type:uuid;index;not null"`
+	CreatedAt        time.Time
+	User             User      `gorm:"foreignKey:UserID"`
+	BaristaProfile   Profile   `gorm:"foreignKey:BaristaProfileID"`
 }
 ```
 
@@ -231,10 +263,18 @@ type Tip struct {
 
 ### 💰 チップ関連
 
-| Method | Endpoint                   | 説明                           |
-| ------ | -------------------------- | ------------------------------ |
-| POST   | /tips                      | チップ送信（コメント任意）     |
-| GET    | /baristas/{baristaId}/tips | バリスタが受け取ったチップ一覧 |
+| Method | Endpoint                   | 説明                                       |
+| ------ | -------------------------- | ------------------------------------------ |
+| POST   | /tips                      | チップ送信 (Stripe の決済 IntentID を返す) |
+| GET    | /baristas/{baristaId}/tips | バリスタが受け取ったチップ一覧を取得       |
+
+### 🔖 お気に入り関連
+
+| Method | Endpoint               | 説明                             |
+| ------ | ---------------------- | -------------------------------- |
+| POST   | /favorites             | お気に入りバリスタを追加する     |
+| DELETE | /favorites/{baristaId} | お気に入りバリスタを削除する     |
+| GET    | /favorites             | ログインユーザーのお気に入り一覧 |
 
 ## 📝 型定義の具体例（TypeScript）
 
@@ -283,11 +323,26 @@ type EvaluateBaristaRequest = {
   selectedTagIds: string[];
 };
 
-// チップ送信リクエスト
+// チップ送信リクエスト（Stripe決済対応）
 type SendTipRequest = {
   baristaId: string;
   amount: number;
-  message?: string; // チップ送信時のみ自由記述可能
+  message?: string; // 任意の自由記述コメント
+};
+
+// チップ送信レスポンス（Stripe決済IntentIDを返却）
+type SendTipResponse = {
+  paymentIntentId: string;
+};
+
+// お気に入り追加リクエスト
+type AddFavoriteRequest = {
+  baristaId: string;
+};
+
+// お気に入り一覧レスポンス
+type FavoriteListResponse = {
+  favorites: BaristaProfileResponse[];
 };
 ```
 

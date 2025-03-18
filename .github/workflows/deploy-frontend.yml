@@ -1,75 +1,75 @@
-name: Deploy Frontend to Cloudflare Pages
+# name: Deploy Web Frontend to Cloudflare Pages
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - "app/frontend/**"
-      - ".github/workflows/deploy-frontend.yml"
-  workflow_dispatch:
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "app/web/**"
+#       - ".github/workflows/deploy-frontend.yml"
+#   workflow_dispatch:
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       deployments: write
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+#       - name: Setup Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "20"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: "10.6.1"
-          run_install: false
+#       - name: Setup pnpm
+#         uses: pnpm/action-setup@v3
+#         with:
+#           version: "10.6.1"
+#           run_install: false
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+#       - name: Get pnpm store directory
+#         shell: bash
+#         run: |
+#           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+#       - name: Setup pnpm cache
+#         uses: actions/cache@v4
+#         with:
+#           path: ${{ env.STORE_PATH }}
+#           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+#           restore-keys: |
+#             ${{ runner.os }}-pnpm-store-
 
-      - name: Install dependencies
-        run: pnpm install
+#       - name: Install dependencies
+#         run: pnpm install
 
-      - name: Format check
-        run: cd app/frontend && npx @biomejs/biome format src
+#       - name: Format check
+#         run: cd app/web && npx @biomejs/biome format src
 
-      - name: Lint check
-        run: cd app/frontend && pnpm biome check src
+#       - name: Lint check
+#         run: cd app/web && pnpm biome check src
 
-      - name: Build frontend
-        run: pnpm build:frontend
+#       - name: Build frontend
+#         run: pnpm build:frontend:web
 
-      - name: Deploy to Cloudflare Pages
-        id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          command: pages deploy app/frontend/dist --project-name=bra-b-frontend
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Deploy to Cloudflare Pages
+#         id: deploy
+#         uses: cloudflare/wrangler-action@v3
+#         with:
+#           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+#           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+#           packageManager: pnpm
+#           command: pages deploy app/web/dist --project-name=bra-b-frontend-web
+#           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Output deployment URLs
-        env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
-          DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
-        run: |
-          echo "Deployment URL: $DEPLOYMENT_URL"
-          if [ ! -z "$DEPLOYMENT_ALIAS_URL" ]; then
-            echo "Deployment Alias URL: $DEPLOYMENT_ALIAS_URL"
-          fi
+#       - name: Output deployment URLs
+#         env:
+#           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+#           DEPLOYMENT_ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+#         run: |
+#           echo "Deployment URL: $DEPLOYMENT_URL"
+#           if [ ! -z "$DEPLOYMENT_ALIAS_URL" ]; then
+#             echo "Deployment Alias URL: $DEPLOYMENT_ALIAS_URL"
+#           fi

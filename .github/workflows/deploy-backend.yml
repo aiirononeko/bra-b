@@ -1,73 +1,73 @@
-name: Deploy Backend to Cloudflare Workers
+# name: Deploy Backend to Cloudflare Workers
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - "app/backend/**"
-      - ".github/workflows/deploy-backend.yml"
-  workflow_dispatch:
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "app/backend/**"
+#       - ".github/workflows/deploy-backend.yml"
+#   workflow_dispatch:
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       deployments: write
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.21"
-          cache: true
+#       - name: Setup Go
+#         uses: actions/setup-go@v5
+#         with:
+#           go-version: "1.21"
+#           cache: true
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: app/backend/package.json
+#       - name: Setup Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "20"
+#           cache: "npm"
+#           cache-dependency-path: app/backend/package.json
 
-      - name: Install dependencies
-        working-directory: app/backend
-        run: npm ci
+#       - name: Install dependencies
+#         working-directory: app/backend
+#         run: npm ci
 
-      - name: Install Go dependencies
-        run: |
-          cd app/backend
-          go mod tidy
+#       - name: Install Go dependencies
+#         run: |
+#           cd app/backend
+#           go mod tidy
 
-      - name: Build WebAssembly
-        run: |
-          cd app/backend
-          chmod +x build.sh
-          ./build.sh
-          echo "WebAssembly build output:"
-          ls -la wasm/
+#       - name: Build WebAssembly
+#         run: |
+#           cd app/backend
+#           chmod +x build.sh
+#           ./build.sh
+#           echo "WebAssembly build output:"
+#           ls -la wasm/
 
-      - name: Check wasm_exec.js format
-        run: |
-          cd app/backend
-          echo "Checking if wasm_exec.js was properly converted to ES Module..."
-          grep -q "export default { Go }" wasm/wasm_exec.js && echo "✅ ES Module format verified" || echo "❌ ES Module format not found"
+#       - name: Check wasm_exec.js format
+#         run: |
+#           cd app/backend
+#           echo "Checking if wasm_exec.js was properly converted to ES Module..."
+#           grep -q "export default { Go }" wasm/wasm_exec.js && echo "✅ ES Module format verified" || echo "❌ ES Module format not found"
 
-      - name: Deploy to Cloudflare Workers
-        id: deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        working-directory: app/backend
-        run: |
-          echo "Deploying to Cloudflare Workers..."
-          npm run deploy
-          echo "deployment-url=https://bra-b-backend.workers.dev" >> $GITHUB_OUTPUT
+#       - name: Deploy to Cloudflare Workers
+#         id: deploy
+#         env:
+#           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+#           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+#         working-directory: app/backend
+#         run: |
+#           echo "Deploying to Cloudflare Workers..."
+#           npm run deploy
+#           echo "deployment-url=https://bra-b-backend.workers.dev" >> $GITHUB_OUTPUT
 
-      - name: Output deployment URL
-        env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
-        run: |
-          echo "Deployment URL: $DEPLOYMENT_URL"
-          echo "Deployment successful! API is now available at $DEPLOYMENT_URL"
+#       - name: Output deployment URL
+#         env:
+#           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+#         run: |
+#           echo "Deployment URL: $DEPLOYMENT_URL"
+#           echo "Deployment successful! API is now available at $DEPLOYMENT_URL"

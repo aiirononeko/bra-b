@@ -1,5 +1,5 @@
 name = "bra-b-backend"
-main = "src/index.ts"
+main = "src/presentation/index.ts"
 compatibility_date = "2023-12-01"
 
 # Cloudflare D1データベースの設定

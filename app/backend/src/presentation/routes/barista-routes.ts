@@ -6,24 +6,24 @@ import { DrizzleBaristaRepository } from "../../infrastructure/repositories/driz
 import type { Env } from "../../types";
 import type { Database } from "../../types";
 import { createBaristaSchema, updateBaristaSchema } from "../../domain/entities/barista";
-import type { BaristaApi } from "../../api-types";
+import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type * as schema from "../../db/schema";
+import { buildHono } from "../common";
 
-/**
- * バリスタ関連のルーター
- */
-export const baristaRoutes = new Hono<{ Bindings: Env; Variables: { db: Database } }>();
+const app = buildHono()
+  /**
+   * バリスタ一覧取得
+   */
+  .get("/", async (c) => {
+    const db = c.get("db");
+    const baristaRepository = new DrizzleBaristaRepository(db);
+    const getAllBaristasUseCase = new GetAllBaristasUseCase(baristaRepository);
 
-/**
- * バリスタ一覧取得
- */
-baristaRoutes.get("/baristas", async (c) => {
-  const db = c.get("db");
-  const baristaRepository = new DrizzleBaristaRepository(db);
-  const getAllBaristasUseCase = new GetAllBaristasUseCase(baristaRepository);
+    const result = await getAllBaristasUseCase.execute();
+    return c.json({ baristas: result });
+  });
 
-  const result = await getAllBaristasUseCase.execute();
-  return c.json({ baristas: result });
-});
+export default app;
 
 // /**
 //  * バリスタ詳細取得

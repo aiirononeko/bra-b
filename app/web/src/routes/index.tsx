@@ -1,7 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-
-import { getBaristas } from "../lib/api";
+import { useBaristas } from "../hooks/use-baristas";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -12,10 +10,7 @@ export const Route = createFileRoute("/")({
  */
 export function Index() {
   // バリスタ一覧データを取得
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["baristas"],
-    queryFn: getBaristas,
-  });
+  const { data, isLoading, error } = useBaristas();
 
   if (isLoading) {
     return <div>読み込み中...</div>;

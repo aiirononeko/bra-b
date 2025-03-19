@@ -108,11 +108,9 @@ export class BaristaId extends UuidId {
 /**
  * Zodスキーマで使用するためのカスタムバリデーション
  */
-export const uuidIdSchema = z
-  .string()
-  .refine((value) => UuidId.UUID_REGEX.test(value), {
-    message: "有効なUUID形式である必要があります",
-  });
+export const uuidIdSchema = z.string().refine((value) => UuidId.UUID_REGEX.test(value), {
+  message: "有効なUUID形式である必要があります",
+});
 
 export const userIdSchema = uuidIdSchema;
 export const baristaIdSchema = uuidIdSchema;

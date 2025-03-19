@@ -2,15 +2,14 @@ import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { HTTPException } from "hono/http-exception";
-import { drizzle } from "drizzle-orm/d1";
 
-import { auth } from "../auth";
+import { auth, createAuthWithEnv } from "../auth";
 import { buildHono } from "./common";
-
-import * as schema from "../db/schema";
+import { prismaMiddleware } from "./middlewares/prisma";
+import type { BetterAuthInstance } from "./common";
 
 import baristaRoutes from "./routes/barista-routes";
-import authRoutes from "./routes/auth-routes";
+// import authRoutes from "./routes/auth-routes";
 
 export const app = buildHono();
 
@@ -27,9 +26,12 @@ app.use(
 );
 app.use("*", secureHeaders());
 
-// データベース接続のミドルウェア
+// Prismaクライアントのミドルウェア
+app.use("*", prismaMiddleware);
+
+// authインスタンスを環境に応じて初期化するミドルウェア
 app.use("*", async (c, next) => {
-  c.set("db", drizzle(c.env.DB, { schema }));
+  c.set("auth", createAuthWithEnv(c.env) as unknown as BetterAuthInstance);
   await next();
 });
 
@@ -38,12 +40,13 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 // BetterAuthのルートを追加
 app.on(["POST", "GET"], "/auth/*", (c) => {
-  return auth.handler(c.req.raw);
+  const authInstance = c.get("auth") || auth;
+  return authInstance.handler(c.req.raw);
 });
 
 // APIルート
 const routes = app
-  .route("/auth", authRoutes)
+  // .route("/auth", authRoutes)
   .route("/baristas", baristaRoutes)
   .onError((err, c) => {
     if (err instanceof HTTPException) {

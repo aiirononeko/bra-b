@@ -1,9 +1,9 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import type * as schema from "./db/schema";
+import type { PrismaClient } from "@prisma/client";
 
 export type Env = {
   DB: D1Database;
   BETTER_AUTH_SECRET: string;
+  Env: string;
 };
 
-export type Database = DrizzleD1Database<typeof schema>;
+export type Database = PrismaClient;

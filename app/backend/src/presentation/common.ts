@@ -2,14 +2,25 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HTTPException } from "hono/http-exception";
 import { getReasonPhrase } from "http-status-codes";
-import type { DrizzleD1Database } from "drizzle-orm/d1";
+import type { PrismaClient } from "@prisma/client";
 
-import type * as schema from "../db/schema";
 import type { Env } from "../types";
 
+// better-authの型定義
+export type BetterAuthInstance = {
+  handler: (request: Request) => Promise<Response>;
+  api: {
+    getSession: (options: unknown) => Promise<unknown>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
 type Variables = {
-  db: DrizzleD1Database<typeof schema>;
+  db: PrismaClient;
   user?: { id: string };
+  auth?: BetterAuthInstance;
+  env: string;
 };
 
 export const buildHono = () => new Hono<{ Bindings: Env; Variables: Variables }>();

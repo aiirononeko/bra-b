@@ -39,9 +39,9 @@ export const authMiddleware = async (
       throw errThrowHelper(401, "認証が必要です");
     }
 
-    // ユーザー情報をコンテキストに設定
-    c.set("user", session.user);
-    c.set("session", session.session);
+    // // ユーザー情報をコンテキストに設定
+    // c.set("user", session.user);
+    // c.set("session", session.session);
 
     await next();
   } catch (error) {

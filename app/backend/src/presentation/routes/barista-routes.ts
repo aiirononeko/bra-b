@@ -7,7 +7,7 @@ import { GetAllBaristasUseCase } from "../../application/usecases/barista/get-al
 import { GetBaristaByIdUseCase } from "../../application/usecases/barista/get-barista-by-id-usecase";
 import { CreateBaristaUseCase } from "../../application/usecases/barista/create-barista-usecase";
 import { UpdateBaristaUseCase } from "../../application/usecases/barista/update-barista-usecase";
-import { DrizzleBaristaRepository } from "../../infrastructure/repositories/drizzle-barista-repository";
+import { getBaristaRepository } from "../../infrastructure/repositories";
 
 import { createBaristaSchema, updateBaristaSchema } from "../../domain/entities/barista";
 
@@ -16,8 +16,7 @@ const app = buildHono()
    * バリスタ一覧取得
    */
   .get("/", async (c) => {
-    const db = c.get("db");
-    const baristaRepository = new DrizzleBaristaRepository(db);
+    const baristaRepository = getBaristaRepository(c.env);
     const getAllBaristasUseCase = new GetAllBaristasUseCase(baristaRepository);
 
     const result = await getAllBaristasUseCase.execute();
@@ -29,8 +28,7 @@ const app = buildHono()
    */
   .get("/:id", async (c) => {
     const id = c.req.param("id");
-    const db = c.get("db");
-    const baristaRepository = new DrizzleBaristaRepository(db);
+    const baristaRepository = getBaristaRepository(c.env);
     const getBaristaByIdUseCase = new GetBaristaByIdUseCase(baristaRepository);
 
     try {
@@ -51,7 +49,6 @@ const app = buildHono()
    */
   .post("/", authMiddleware, zValidator("json", createBaristaSchema), async (c) => {
     const body = await c.req.valid("json");
-    const db = c.get("db");
     const user = c.get("user");
 
     // authMiddlewareでuserが設定されていることを確認
@@ -65,7 +62,7 @@ const app = buildHono()
       userId: user.id,
     };
 
-    const baristaRepository = new DrizzleBaristaRepository(db);
+    const baristaRepository = getBaristaRepository(c.env);
     const createBaristaUseCase = new CreateBaristaUseCase(baristaRepository);
 
     try {
@@ -84,7 +81,6 @@ const app = buildHono()
   .patch("/:id", authMiddleware, zValidator("json", updateBaristaSchema), async (c) => {
     const id = c.req.param("id");
     const body = c.req.valid("json");
-    const db = c.get("db");
     const user = c.get("user");
 
     // authMiddlewareでuserが設定されていることを確認
@@ -92,7 +88,7 @@ const app = buildHono()
       throw errThrowHelper(401, "認証が必要です");
     }
 
-    const baristaRepository = new DrizzleBaristaRepository(db);
+    const baristaRepository = getBaristaRepository(c.env);
 
     // 権限チェック：自分のプロフィールかどうか確認
     const barista = await baristaRepository.findById(id);

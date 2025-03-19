@@ -1,7 +1,4 @@
-import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { and, count, eq } from "drizzle-orm";
-import type * as schema from "../../db/schema";
-import { evaluations, profiles } from "../../db/schema";
+import type { PrismaClient } from "@prisma/client";
 import type { Barista, BaristaListItem } from "../../domain/entities/barista";
 import {
   baristaSchema,
@@ -12,25 +9,27 @@ import type { BaristaRepository } from "../../domain/repositories/barista-reposi
 import { BaristaId, UserId } from "../../domain/value-objects/id";
 
 /**
- * DrizzleORM実装のバリスタリポジトリ
+ * Prisma実装のバリスタリポジトリ
  */
-export class DrizzleBaristaRepository implements BaristaRepository {
-  constructor(private readonly db: DrizzleD1Database<typeof schema>) {}
+export class PrismaBaristaRepository implements BaristaRepository {
+  constructor(private readonly prisma: PrismaClient) {}
 
   async findAll(): Promise<BaristaListItem[]> {
     // バリスタ（プロフィールタイプが'barista'）の一覧を取得
-    const results = await this.db
-      .select({
-        id: profiles.id,
-        displayName: profiles.displayName,
-        iconUrl: profiles.iconUrl,
-        shopName: profiles.shopName,
-      })
-      .from(profiles)
-      .where(eq(profiles.type, "barista"));
+    const results = await this.prisma.profile.findMany({
+      where: {
+        type: "barista",
+      },
+      select: {
+        id: true,
+        displayName: true,
+        iconUrl: true,
+        shopName: true,
+      },
+    });
 
     return results.map((result) => ({
-      id: result.id, // 自動的にバリデーションが行われる
+      id: result.id,
       displayName: result.displayName,
       iconUrl: result.iconUrl ?? undefined,
       shopName: result.shopName ?? undefined,
@@ -42,24 +41,24 @@ export class DrizzleBaristaRepository implements BaristaRepository {
     try {
       const baristaId = BaristaId.parse(id);
 
-      const result = await this.db
-        .select()
-        .from(profiles)
-        .where(and(eq(profiles.id, baristaId.toString()), eq(profiles.type, "barista")));
+      const profile = await this.prisma.profile.findFirst({
+        where: {
+          id: baristaId.toString(),
+          type: "barista",
+        },
+      });
 
-      if (result.length === 0) {
+      if (!profile) {
         return null;
       }
 
       // 評価件数取得
-      const evaluationResult = await this.db
-        .select({ count: count() })
-        .from(evaluations)
-        .where(eq(evaluations.baristaProfileId, baristaId.toString()));
+      const evaluationCount = await this.prisma.evaluation.count({
+        where: {
+          baristaProfileId: baristaId.toString(),
+        },
+      });
 
-      const evaluationCount = evaluationResult[0]?.count ?? 0;
-
-      const profile = result[0];
       const baristaData = {
         id: profile.id,
         userId: profile.userId,
@@ -68,7 +67,7 @@ export class DrizzleBaristaRepository implements BaristaRepository {
         bio: profile.bio ?? undefined,
         snsLinks: profile.snsLinks ? JSON.parse(profile.snsLinks) : undefined,
         shopName: profile.shopName ?? undefined,
-        createdAt: new Date(profile.createdAt),
+        createdAt: profile.createdAt,
         evaluationCount,
       };
 
@@ -101,15 +100,17 @@ export class DrizzleBaristaRepository implements BaristaRepository {
       const baristaId = BaristaId.generate();
       const snsLinksJson = barista.snsLinks ? JSON.stringify(barista.snsLinks) : null;
 
-      await this.db.insert(profiles).values({
-        id: baristaId.toString(),
-        userId: userId.toString(),
-        type: "barista",
-        displayName: barista.displayName,
-        iconUrl: barista.iconUrl ?? null,
-        bio: barista.bio ?? null,
-        snsLinks: snsLinksJson,
-        shopName: barista.shopName ?? null,
+      await this.prisma.profile.create({
+        data: {
+          id: baristaId.toString(),
+          userId: userId.toString(),
+          type: "barista",
+          displayName: barista.displayName,
+          iconUrl: barista.iconUrl ?? null,
+          bio: barista.bio ?? null,
+          snsLinks: snsLinksJson,
+          shopName: barista.shopName ?? null,
+        },
       });
 
       const createdBarista = await this.findById(baristaId.toString());
@@ -138,16 +139,19 @@ export class DrizzleBaristaRepository implements BaristaRepository {
 
       const snsLinksJson = barista.snsLinks ? JSON.stringify(barista.snsLinks) : undefined;
 
-      await this.db
-        .update(profiles)
-        .set({
+      await this.prisma.profile.update({
+        where: {
+          id: baristaId.toString(),
+          type: "barista",
+        },
+        data: {
           displayName: barista.displayName,
           iconUrl: barista.iconUrl,
           bio: barista.bio,
           snsLinks: snsLinksJson,
           shopName: barista.shopName,
-        })
-        .where(and(eq(profiles.id, baristaId.toString()), eq(profiles.type, "barista")));
+        },
+      });
 
       const updatedBarista = await this.findById(baristaId.toString());
       if (!updatedBarista) {

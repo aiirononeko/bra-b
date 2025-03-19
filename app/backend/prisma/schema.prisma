@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id
+  email     String    @unique
+  authType  String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  profiles    Profile[]
+  evaluations Evaluation[]
+  tips        Tip[]
+  favorites   Favorite[]
+
+  @@map("users")
+}
+
+model Profile {
+  id          String   @id
+  userId      String   @map("user_id")
+  type        String
+  displayName String   @map("display_name")
+  iconUrl     String?  @map("icon_url")
+  bio         String?
+  snsLinks    String?  @map("sns_links")
+  shopName    String?  @map("shop_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  evaluations Evaluation[]
+  tips        Tip[]
+  favorites   Favorite[]
+
+  @@map("profiles")
+}
+
+model EvaluationCategory {
+  id        String           @id
+  name      String
+  isActive  Boolean          @default(true) @map("is_active")
+  sortOrder Int              @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at")
+  items     EvaluationItem[]
+
+  @@map("evaluation_categories")
+}
+
+model EvaluationItem {
+  id         String   @id
+  categoryId String   @map("category_id")
+  name       String
+  isCommon   Boolean  @default(false) @map("is_common")
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  category EvaluationCategory @relation(fields: [categoryId], references: [id])
+  details  EvaluationDetail[]
+
+  @@map("evaluation_items")
+}
+
+model Evaluation {
+  id               String   @id
+  baristaProfileId String   @map("barista_profile_id")
+  evaluatorUserId  String   @map("evaluator_user_id")
+  evaluatedAt      DateTime @default(now()) @map("evaluated_at")
+
+  baristaProfile Profile            @relation(fields: [baristaProfileId], references: [id])
+  evaluatorUser  User               @relation(fields: [evaluatorUserId], references: [id])
+  details        EvaluationDetail[]
+
+  @@map("evaluations")
+}
+
+model EvaluationDetail {
+  id               String @id
+  evaluationId     String @map("evaluation_id")
+  evaluationItemId String @map("evaluation_item_id")
+
+  evaluation     Evaluation     @relation(fields: [evaluationId], references: [id])
+  evaluationItem EvaluationItem @relation(fields: [evaluationItemId], references: [id])
+
+  @@map("evaluation_details")
+}
+
+model Tip {
+  id                    String   @id
+  baristaProfileId      String   @map("barista_profile_id")
+  senderUserId          String   @map("sender_user_id")
+  amount                Int
+  sentAt                DateTime @default(now()) @map("sent_at")
+  paymentInfo           String?  @map("payment_info")
+  message               String?
+  stripePaymentIntentId String?  @map("stripe_payment_intent_id")
+
+  baristaProfile Profile @relation(fields: [baristaProfileId], references: [id])
+  senderUser     User    @relation(fields: [senderUserId], references: [id])
+
+  @@map("tips")
+}
+
+model Favorite {
+  id               String   @id
+  userId           String   @map("user_id")
+  baristaProfileId String   @map("barista_profile_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user           User    @relation(fields: [userId], references: [id])
+  baristaProfile Profile @relation(fields: [baristaProfileId], references: [id])
+
+  @@unique([userId, baristaProfileId])
+  @@map("favorites")
+}

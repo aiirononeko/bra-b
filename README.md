@@ -16,7 +16,7 @@
 | フロントエンド             | React              |
 | インフラ（サーバレス環境） | Cloudflare Workers |
 | データベース               | Cloudflare D1      |
-| ORM                        | Drizzle            |
+| ORM                        | Prisma (v6.5.0)    |
 | CDN                        | Cloudflare Pages   |
 
 ## 🔨 設計方針

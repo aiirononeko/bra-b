@@ -1,10 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 
 import { buildHono } from "../common";
-import { GetAllBaristasUseCase } from "../../application/usecases/get-all-baristas-usecase";
-import { GetBaristaByIdUseCase } from "../../application/usecases/get-barista-by-id-usecase";
-import { CreateBaristaUseCase } from "../../application/usecases/create-barista-usecase";
-import { UpdateBaristaUseCase } from "../../application/usecases/update-barista-usecase";
+import { GetAllBaristasUseCase } from "../../application/usecases/barista/get-all-baristas-usecase";
+import { GetBaristaByIdUseCase } from "../../application/usecases/barista/get-barista-by-id-usecase";
+import { CreateBaristaUseCase } from "../../application/usecases/barista/create-barista-usecase";
+import { UpdateBaristaUseCase } from "../../application/usecases/barista/update-barista-usecase";
 import { DrizzleBaristaRepository } from "../../infrastructure/repositories/drizzle-barista-repository";
 import { createBaristaSchema, updateBaristaSchema } from "../../domain/entities/barista";
 

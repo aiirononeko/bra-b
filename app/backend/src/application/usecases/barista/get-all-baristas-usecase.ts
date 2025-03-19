@@ -1,5 +1,5 @@
-import type { BaristaListItem } from "../../domain/entities/barista";
-import type { BaristaRepository } from "../../domain/repositories/barista-repository";
+import type { BaristaListItem } from "../../../domain/entities/barista";
+import type { BaristaRepository } from "../../../domain/repositories/barista-repository";
 
 /**
  * バリスタ一覧取得ユースケース

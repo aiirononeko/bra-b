@@ -1,4 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client/edge";
+
 import type { Barista, BaristaListItem } from "../../domain/entities/barista";
 import {
   baristaSchema,

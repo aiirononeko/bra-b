@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HTTPException } from "hono/http-exception";
 import { getReasonPhrase } from "http-status-codes";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client/edge";
 
 import type { Env } from "../types";
 

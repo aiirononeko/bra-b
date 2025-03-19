@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+
 import { getPrismaClient } from "../../infrastructure/prisma";
 import type { Env } from "../../types";
 

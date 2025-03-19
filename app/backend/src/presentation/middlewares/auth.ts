@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+
 import { auth } from "../../auth";
 import { errThrowHelper } from "../common";
 import type { Env } from "../../types";

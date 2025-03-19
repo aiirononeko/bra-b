@@ -45,7 +45,7 @@ app.on(["POST", "GET"], "/auth/*", (c) => {
 });
 
 // APIルート
-const routes = app
+export const routes = app
   // .route("/auth", authRoutes)
   .route("/baristas", baristaRoutes)
   .onError((err, c) => {

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client/edge";
 
 export type Env = {
   DB: D1Database;

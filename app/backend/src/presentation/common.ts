@@ -9,6 +9,7 @@ import type { Env } from "../types";
 
 type Variables = {
   db: DrizzleD1Database<typeof schema>;
+  user?: { id: string };
 };
 
 export const buildHono = () => new Hono<{ Bindings: Env; Variables: Variables }>();

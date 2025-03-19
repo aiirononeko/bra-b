@@ -1,11 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 
-import { buildHono } from "../common";
+import { authMiddleware } from "../middlewares/auth";
+import { buildHono, errThrowHelper } from "../common";
+
 import { GetAllBaristasUseCase } from "../../application/usecases/barista/get-all-baristas-usecase";
 import { GetBaristaByIdUseCase } from "../../application/usecases/barista/get-barista-by-id-usecase";
 import { CreateBaristaUseCase } from "../../application/usecases/barista/create-barista-usecase";
 import { UpdateBaristaUseCase } from "../../application/usecases/barista/update-barista-usecase";
 import { DrizzleBaristaRepository } from "../../infrastructure/repositories/drizzle-barista-repository";
+
 import { createBaristaSchema, updateBaristaSchema } from "../../domain/entities/barista";
 
 const app = buildHono()
@@ -44,15 +47,29 @@ const app = buildHono()
 
   /**
    * バリスタ作成
+   * 認証が必要
    */
-  .post("/", zValidator("json", createBaristaSchema), async (c) => {
+  .post("/", authMiddleware, zValidator("json", createBaristaSchema), async (c) => {
     const body = await c.req.valid("json");
     const db = c.get("db");
+    const user = c.get("user");
+
+    // authMiddlewareでuserが設定されていることを確認
+    if (!user) {
+      throw errThrowHelper(401, "認証が必要です");
+    }
+
+    // ユーザーIDを設定（認証済みユーザーのIDを使用）
+    const data = {
+      ...body,
+      userId: user.id,
+    };
+
     const baristaRepository = new DrizzleBaristaRepository(db);
     const createBaristaUseCase = new CreateBaristaUseCase(baristaRepository);
 
     try {
-      const barista = await createBaristaUseCase.execute(body);
+      const barista = await createBaristaUseCase.execute(data);
       return c.json({ barista }, 201);
     } catch (error) {
       console.error("バリスタ作成エラー:", error);
@@ -62,18 +79,36 @@ const app = buildHono()
 
   /**
    * バリスタ更新
+   * 認証が必要
    */
-  .patch("/:id", zValidator("json", updateBaristaSchema), async (c) => {
+  .patch("/:id", authMiddleware, zValidator("json", updateBaristaSchema), async (c) => {
     const id = c.req.param("id");
-    const body = await c.req.valid("json");
+    const body = c.req.valid("json");
     const db = c.get("db");
+    const user = c.get("user");
+
+    // authMiddlewareでuserが設定されていることを確認
+    if (!user) {
+      throw errThrowHelper(401, "認証が必要です");
+    }
+
     const baristaRepository = new DrizzleBaristaRepository(db);
+
+    // 権限チェック：自分のプロフィールかどうか確認
+    const barista = await baristaRepository.findById(id);
+    if (!barista) {
+      return c.json({ message: "バリスタが見つかりません" }, 404);
+    }
+
+    if (barista.userId !== user.id) {
+      return c.json({ message: "このバリスタプロフィールを更新する権限がありません" }, 403);
+    }
+
     const updateBaristaUseCase = new UpdateBaristaUseCase(baristaRepository);
 
     try {
-      // TODO: 認証情報からログインユーザーのIDを取得し、自分のプロフィールかどうかをチェックする
-      const barista = await updateBaristaUseCase.execute(id, body);
-      return c.json({ barista });
+      const updatedBarista = await updateBaristaUseCase.execute(id, body);
+      return c.json({ barista: updatedBarista });
     } catch (error) {
       console.error("バリスタ更新エラー:", error);
       return c.json({ message: "サーバーエラーが発生しました" }, 500);

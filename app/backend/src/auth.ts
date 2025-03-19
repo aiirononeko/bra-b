@@ -1,33 +1,45 @@
 import { betterAuth } from "better-auth";
-import { drizzle } from "drizzle-orm/d1";
-import { users } from "./db/schema";
+
+import { db } from "./db";
 import type { Env } from "./types";
 
-export const createAuth = (env: Env) => {
-  const db = drizzle(env.DB);
+export const auth = betterAuth({
+  secret: "insecure-secret-change-in-production",
+  database: {
+    db,
+    type: "sqlite",
+  },
+  baseURL: process.env.BETTER_AUTH_URL,
+  emailPassword: {
+    enabled: true,
+  },
+  session: {
+    freshAge: 60 * 5, // 5分
+    expiresIn: 30 * 24 * 60 * 60, // 30日
+    updateAge: 24 * 60 * 60, // 24時間
+  },
+  plugins: [
+    // magicLink({
+    // 	async sendMagicLink(data) {
+    // 		console.log({
+    // 			data,
+    // 		});
+    // 		await resend.emails.send({
+    // 			from,
+    // 			to: to || data.email,
+    // 			subject: "Sign in to Better Auth",
+    // 			html: `
+    // 				<p>Click the link below to sign in to Better Auth:</p>
+    // 				<a href="${data.url}">Sign in</a>
+    // 			`,
+    // 		});
+    // 	},
+    // }),
+  ],
+});
 
-  return betterAuth({
-    secret: env.BETTER_AUTH_SECRET,
-    // Drizzleアダプターの設定
-    adapter: {
-      type: "drizzle",
-      tables: {
-        users,
-      },
-      db,
-    },
-    // マジックリンク認証の設定
-    magicLink: {
-      enabled: true,
-      from: "no-reply@example.com",
-      subject: "ブラービにログイン",
-    },
-    // Googleログインの設定
-    google: {
-      enabled: true,
-      // 本番環境では適切なclientIdとclientSecretを設定する
-      clientId: "dummy-client-id",
-      clientSecret: "dummy-client-secret",
-    },
-  });
+// 環境変数アクセス用のヘルパー（必要に応じて使用）
+export const createAuthWithEnv = (env: Env) => {
+  // 将来的にはDBを渡す予定
+  return auth;
 };

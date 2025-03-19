@@ -61,7 +61,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: pnpm
-          command: pages deploy app/web/dist --project-name=bra-b-frontend-web
+          command: pages deploy app/web/dist --project-name=bra-b-frontend
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Output deployment URLs

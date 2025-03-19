@@ -1,5 +1,5 @@
-import type { ZodError, ZodIssue } from "zod";
 import type { ClientResponse } from "hono/client";
+import type { ZodError, ZodIssue } from "zod";
 
 export class HttpError extends Error {
   constructor(

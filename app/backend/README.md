@@ -43,18 +43,21 @@
 
 ## 実装されている API
 
-現在、以下の API エンドポイントが実装されています：
+以下の API エンドポイントが実装されています：
 
 - `GET /baristas`: バリスタ一覧を取得
+- `GET /baristas/:id`: 特定のバリスタ詳細を取得
+- `POST /baristas`: 新しいバリスタを作成
+- `PATCH /baristas/:id`: バリスタ情報を更新（現在は認証機能がないため、誰でも更新可能）
 
 今後、以下の API エンドポイントを実装予定：
 
-- `GET /baristas/:id`: 特定のバリスタ詳細を取得
-- `POST /baristas`: 新しいバリスタを作成
-- `PATCH /baristas/:id`: バリスタ情報を更新
 - `GET /baristas/:id/evaluations`: バリスタの評価一覧を取得
+- `POST /baristas/:id/evaluations`: バリスタの評価を作成
 - `GET /baristas/:id/tips`: バリスタが受け取ったチップ一覧を取得
-- 評価・チップ・お気に入り関連の API
+- `POST /baristas/:id/tips`: バリスタにチップを送る
+- 認証関連の API
+- お気に入り関連の API
 
 ## 型安全性の特徴
 
@@ -87,7 +90,10 @@ src/
 │       └── id.ts           # ID関連のバリューオブジェクト
 ├── application/            # アプリケーションレイヤー
 │   └── usecases/           # ユースケース実装
-│       └── get-all-baristas-usecase.ts # バリスタ一覧取得
+│       ├── get-all-baristas-usecase.ts # バリスタ一覧取得
+│       ├── get-barista-by-id-usecase.ts # バリスタ詳細取得
+│       ├── create-barista-usecase.ts # バリスタ作成
+│       └── update-barista-usecase.ts # バリスタ更新
 ├── infrastructure/         # インフラストラクチャレイヤー
 │   └── repositories/       # リポジトリ実装
 │       └── drizzle-barista-repository.ts # Drizzle実装
@@ -135,8 +141,9 @@ pnpm drizzle-kit push
 
 ## 今後の開発計画
 
-1. 残りの API エンドポイントの実装
-2. テストの追加
-3. エラーハンドリングの強化
-4. パフォーマンス最適化
-5. ドキュメントの充実
+1. 認証機能の実装
+2. 評価・チップ関連 API の実装
+3. テストの追加
+4. エラーハンドリングの強化
+5. パフォーマンス最適化
+6. ドキュメントの充実

@@ -15,7 +15,8 @@ const buildZodIssueMessage = (issue: ZodIssue) => {
   const path = issue.path.join(".");
   return `${path}: ${issue.message}`;
 };
-export const throwHttpErrorAtFailure = async <T = any>(res: Response | ClientResponse<T>) => {
+
+export const throwHttpErrorAtFailure = async <T = unknown>(res: Response | ClientResponse<T>) => {
   if (res.ok) return;
   const data = await res.json();
   if (data.name === "ZodError" || data.error?.name === "ZodError") {
@@ -28,21 +29,21 @@ export const throwHttpErrorAtFailure = async <T = any>(res: Response | ClientRes
 
 export const handleErrorToast = (err: unknown) => {
   console.error(err);
-  if (err instanceof HttpError) {
-    return (
-      <div>
-        <div className="font-semibold">エラー: {err.data.code ?? err.status}</div>
-        <p className="whitespace-pre-wrap">{err.data.message}</p>
-      </div>
-    );
-  } else if (err instanceof Error) {
-    return (
-      <div>
-        <div className="font-semibold">エラー</div>
-        <p className="whitespace-pre-wrap">エラーが発生しました</p>
-      </div>
-    );
-  }
+  // if (err instanceof HttpError) {
+  //   return (
+  //     <div>
+  //       <div className="font-semibold">エラー: {err.data.code ?? err.status}</div>
+  //       <p className="whitespace-pre-wrap">{err.data.message}</p>
+  //     </div>
+  //   );
+  // } else if (err instanceof Error) {
+  //   return (
+  //     <div>
+  //       <div className="font-semibold">エラー</div>
+  //       <p className="whitespace-pre-wrap">エラーが発生しました</p>
+  //     </div>
+  //   );
+  // }
 };
 
 export const handleHttpError = (err: Error) => {

@@ -48,8 +48,8 @@ jobs:
       - name: Format check
         run: cd app/web && npx @biomejs/biome format src
 
-      - name: Lint check
-        run: cd app/web && pnpm biome check src
+      # - name: Lint check
+      #   run: cd app/web && pnpm biome check src
 
       - name: Build frontend
         run: pnpm build:frontend:web

@@ -1,0 +1,9 @@
+name = "bra-b-backend"
+main = "src/index.ts"
+compatibility_date = "2023-12-01"
+
+# Cloudflare D1データベースの設定
+[[d1_databases]]
+binding = "DB"
+database_name = "brab_db"
+database_id = "d9604de8-f6bf-424a-b216-a56858653b6b"

@@ -10,23 +10,18 @@
 
 ## 🗂 技術スタック・アーキテクチャ
 
-| 項目                       | 技術選定                   |
-| -------------------------- | -------------------------- |
-| バックエンド               | Golang / TypeScript (Hono) |
-| フロントエンド             | React                      |
-| インフラ（サーバレス環境） | AWS Lambda                 |
-| データベース               | AWS RDS PostgreSQL         |
-| ORM                        | GORM / Prisma              |
-| CDN・ドメイン管理          | AWS CloudFront・Route53    |
-| SSL 証明書                 | AWS ACM                    |
-| インフラ構成管理           | Terraform                  |
+| 項目                       | 技術選定           |
+| -------------------------- | ------------------ |
+| バックエンド               | TypeScript (Hono)  |
+| フロントエンド             | React              |
+| インフラ（サーバレス環境） | Cloudflare Workers |
+| データベース               | Cloudflare D1      |
+| ORM                        | Drizzle            |
+| CDN                        | Cloudflare Pages   |
 
 ## 🔨 設計方針
 
 - ドメイン駆動設計（DDD）＋ レイヤードアーキテクチャを採用
-- PostgreSQL を用いた柔軟かつ効率的なデータ設計
-- Infrastructure as Code (Terraform) によるインフラ管理
-- TypeScript バックエンドを追加実装（Golang 版と並行運用）
 
 ## 🗃 データモデル（ER 図）
 
@@ -117,93 +112,6 @@ Favorite {
 }
 ```
 
-## 📚 データ構造 (GORM モデル)
-
-<details><summary>展開して表示（GORMモデルの詳細）</summary>
-
-```go
-type User struct {
-	ID        string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Email     string         `gorm:"uniqueIndex;not null"`
-	AuthType  string         `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Profile   Profile
-}
-
-type Profile struct {
-	ID          string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID      string    `gorm:"type:uuid;uniqueIndex;not null"`
-	Type        string    `gorm:"type:varchar(20);not null"`
-	DisplayName string    `gorm:"type:varchar(100);not null"`
-	IconURL     string    `gorm:"type:text"`
-	Bio         string    `gorm:"type:text"`
-	SNSLinks    string    `gorm:"type:text"`
-	ShopName    string    `gorm:"type:varchar(100)"`
-	CreatedAt   time.Time
-	User        User      `gorm:"foreignKey:UserID"`
-}
-
-type Evaluation struct {
-	ID               string             `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	BaristaProfileID string             `gorm:"type:uuid;index;not null"`
-	EvaluatorUserID  *string            `gorm:"type:uuid;index"`
-	EvaluatedAt      time.Time          `gorm:"autoCreateTime"`
-	EvaluationDetails []EvaluationDetail `gorm:"foreignKey:EvaluationID"`
-	BaristaProfile   Profile            `gorm:"foreignKey:BaristaProfileID"`
-	EvaluatorUser    User               `gorm:"foreignKey:EvaluatorUserID"`
-}
-
-type EvaluationCategory struct {
-	ID              string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Name            string `gorm:"not null"`
-	SortOrder       int
-	IsActive        bool      `gorm:"default:true"`
-	CreatedAt       time.Time
-	EvaluationItems []EvaluationItem `gorm:"foreignKey:CategoryID"`
-}
-
-type EvaluationItem struct {
-	ID          string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	CategoryID  *string `gorm:"type:uuid;index"`
-	Name        string `gorm:"not null"`
-	IsCommon    bool   `gorm:"default:false"`
-	IsActive    bool   `gorm:"default:true"`
-	SortOrder   int
-	CreatedAt   time.Time
-}
-
-type EvaluationDetail struct {
-	ID               string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EvaluationID     string `gorm:"type:uuid;index;not null"`
-	EvaluationItemID string `gorm:"type:uuid;index;not null"`
-}
-
-type Tip struct {
-	ID                    string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	BaristaProfileID      string         `gorm:"type:uuid;index;not null"`
-	SenderUserID          string         `gorm:"type:uuid;index"`
-	Amount                float64        `gorm:"not null"`
-	Message               string         `gorm:"type:text"`
-	StripePaymentIntentID string         `gorm:"type:varchar(100);not null;uniqueIndex"`
-	SentAt                time.Time
-	BaristaProfile        Profile        `gorm:"foreignKey:BaristaProfileID"`
-	SenderUser            User           `gorm:"foreignKey:SenderUserID"`
-}
-
-type Favorite struct {
-	ID               string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID           string    `gorm:"type:uuid;index;not null"`
-	BaristaProfileID string    `gorm:"type:uuid;index;not null"`
-	CreatedAt        time.Time
-	User             User      `gorm:"foreignKey:UserID"`
-	BaristaProfile   Profile   `gorm:"foreignKey:BaristaProfileID"`
-}
-```
-
-</details>
-
 ## ✅ 評価システム設計
 
 - 数値評価・自由記述はなし
@@ -222,21 +130,20 @@ type Favorite struct {
 | -------------------------------------------------- |
 | またお願いしたい, プロフェッショナル, 親しみやすい |
 
+## 🔑 認証
+
+- BETTER-AUTH (https://www.better-auth.com/docs/introduction) を使用する
+- 以下の認証方法を提供する
+  - マジックリンクでの登録&ログイン
+  - Google アカウントでの登録&ログイン
+
 ## 🛠 バックエンド API 設計方針
 
 バックエンド（Golang）とフロントエンド（TypeScript）の間でリクエスト・レスポンスの型を手軽かつ明快に共有するために、以下の方針を採用します。
 
 ### 📌 型定義の管理方法
 
-- 型定義はフロントエンド（TypeScript 側）を起点とする
-- Golang 側は TypeScript 側で定義された型に合わせて構造体を作成する
-- OpenAPI などの重い仕組みは採用しない（管理が複雑になるため）
-
-理由:
-
-- シンプルで管理が容易
-- フロントエンドの型定義がそのまま API 仕様書になる
-- 開発初期に最適（変更にも強い）
+- 型定義は Hono Client を利用して、バックエンドとフロントエンドの型定義を共有する
 
 ## 🚦 バックエンドで実装が必要なエンドポイント一覧
 
@@ -350,68 +257,3 @@ type FavoriteListResponse = {
 ```
 
 </details>
-
-## 🏗 インフラ構成管理 (Terraform)
-
-本プロジェクトではインフラ構成の管理と自動化に Terraform を使用しています。AWS 上に以下のリソースをコード管理しています：
-
-- **API Gateway**: HTTP リクエストの受付と Lambda へのルーティング
-- **Lambda 関数**: Go バックエンドの実行環境
-- **RDS PostgreSQL**: データベース
-- **VPC**: セキュアなネットワーク環境
-- **CloudWatch**: ログ管理とモニタリング
-
-### 📁 ディレクトリ構成
-
-```
-terraform/                # Terraformコード
-├── modules/              # 再利用可能なモジュール
-│   ├── vpc/              # ネットワーク関連
-│   ├── database/         # RDS PostgreSQL
-│   ├── lambda/           # Lambda関数
-│   └── api_gateway/      # API Gateway
-├── environments/         # 環境別設定
-│   ├── dev/              # 開発環境
-│   └── prod/             # 本番環境
-└── README.md             # 詳細な使用方法
-```
-
-### 🚀 デプロイ方法
-
-プロジェクトのデプロイは以下のコマンドで実行できます：
-
-```bash
-# 開発環境へのデプロイ
-./scripts/deploy.sh dev
-
-# 本番環境へのデプロイ
-./scripts/deploy.sh prod
-```
-
-詳細な Terraform の使用方法は [terraform/README.md](./terraform/README.md) を参照してください。
-
-## 🔧 TypeScript バックエンド
-
-本プロジェクトでは、Golang バックエンドと並行して、TypeScript を使用した代替実装を提供しています。
-
-### 📋 特徴
-
-- **Hono**: 軽量かつ高速な Web フレームワーク
-- **Prisma**: タイプセーフな ORM
-- **DDD + レイヤードアーキテクチャ**: クリーンな設計とコード構造
-- **JWT 認証**: セキュアなユーザー認証
-
-### 📁 ディレクトリ構成
-
-```
-app/backend-ts/          # TypeScriptバックエンド
-├── src/                 # ソースコード
-│   ├── domain/          # ドメイン層
-│   ├── repositories/    # リポジトリ実装
-│   ├── services/        # サービス層
-│   ├── routes/          # APIルート
-│   └── factories/       # 依存性注入
-└── README.md            # 詳細な使用方法
-```
-
-詳細なセットアップと使用方法は [app/backend-ts/README.md](./app/backend-ts/README.md) を参照してください。

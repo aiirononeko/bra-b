@@ -15,7 +15,7 @@ alwaysApply: true
 
 ## 技術スタックと方針
 
-- バックエンド: Golang、AWS Lambda
-- データベース: AWS RDS PostgreSQL (ORM: GORM)
+- バックエンド: TypeScript (Hono), Cloudflare Workers
+- データベース: Cloudflare D1 (ORM: Drizzle)
 - アーキテクチャ: ドメイン駆動設計(DDD)、レイヤードアーキテクチャ
 - AIコード生成時は上記方針を厳守すること

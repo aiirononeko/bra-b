@@ -1,0 +1,26 @@
+{
+  "name": "bra-b-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "better-auth": "^1.2.2",
+    "drizzle-orm": "^0.30.4",
+    "hono": "^4.2.6",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240320.1",
+    "drizzle-kit": "^0.20.14",
+    "typescript": "^5.4.2",
+    "vitest": "^1.3.1",
+    "wrangler": "^3.42.0"
+  }
+}

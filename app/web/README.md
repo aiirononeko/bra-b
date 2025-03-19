@@ -1,54 +1,108 @@
-# React + TypeScript + Vite
+# フロントエンドアプリケーション (React)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 概要
 
-Currently, two official plugins are available:
+バリスタファン構築サービスのフロントエンドアプリケーションです。React を使用した SPA として実装され、バックエンド API と型を安全に共有しています。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 技術スタック
 
-## Expanding the ESLint configuration
+- **言語**: TypeScript
+- **フレームワーク**: React
+- **ビルドツール**: Vite
+- **状態管理**: TanStack Query (React Query)
+- **ルーティング**: TanStack Router
+- **API クライアント**: Hono/fetch
+- **デプロイ**: Cloudflare Pages
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 特徴
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### 型安全な API 通信
+
+バックエンドと型定義を共有し、完全に型安全な通信を実現しています。
+
+```typescript
+// バックエンドから型をインポート
+import type { BaristaApi } from "../../../backend/src/api-types";
+
+// 型安全なAPIクライアント
+export const getBaristas = async (): Promise<
+  ApiSuccessResponse<BaristasData>
+> => {
+  const response = await fetch(`${API_BASE_URL}/api/baristas`);
+  // ...
+};
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### データフェッチの抽象化
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+TanStack Query を使用してデータフェッチを抽象化し、キャッシュや再取得の管理を自動化しています。
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ["baristas"],
+  queryFn: async () => {
+    const response = await getBaristas();
+    return response.data;
   },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+});
+```
+
+### コンポーネント設計
+
+コンポーネントは以下の階層で設計されています：
+
+1. **ページコンポーネント** - ルーティング対象の全画面コンポーネント
+2. **UI コンポーネント** - 再利用可能な UI パーツ
+3. **フック** - ロジックの抽象化
+
+## ディレクトリ構造
+
+```
+src/
+├── assets/               # 静的アセット（画像など）
+├── components/           # 再利用可能なUIコンポーネント
+├── hooks/                # カスタムフック
+├── lib/                  # ユーティリティ関数
+│   └── api.ts            # API通信ラッパー
+├── pages/                # ページコンポーネント
+├── routes/               # ルート定義
+├── styles/               # グローバルスタイル
+├── main.tsx              # エントリーポイント
+└── App.tsx               # ルートコンポーネント
+```
+
+## 開発方法
+
+```bash
+# 依存関係のインストール
+pnpm install
+
+# 開発サーバーの起動
+pnpm dev
+
+# ビルド
+pnpm build
+
+# プレビュー（ビルド後）
+pnpm preview
+
+# デプロイ
+pnpm deploy
+```
+
+## API 型の共有方法
+
+バックエンドとフロントエンドの型共有は以下の方法で実現しています：
+
+1. バックエンドが`api-types.ts`で API の型定義を提供
+2. フロントエンドがこの型定義をインポート
+3. API 通信関数は正確な型情報を持ったレスポンスを返却
+4. TanStack Query による型安全なデータフェッチ
+
+## 環境変数
+
+以下の環境変数を`.env`ファイルで設定できます：
+
+```
+VITE_API_URL=http://localhost:8787  # バックエンドAPIのベースURL
 ```

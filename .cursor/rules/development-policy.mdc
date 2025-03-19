@@ -9,3 +9,4 @@ alwaysApply: true
 - データベースアクセスにはDrizzleを使用する。
 - ビジネスロジックはドメインモデル内に記述し、サービス層やユースケース層を明確に区別すること。
 - Cloudflare Workersハンドラはシンプルに保つこと（ビジネスロジックは書かない）。
+- letの使用は厳禁。常にconstとearly returnを使用すること。

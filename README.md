@@ -186,74 +186,23 @@ Favorite {
 | DELETE | /favorites/{baristaId} | お気に入りバリスタを削除する     |
 | GET    | /favorites             | ログインユーザーのお気に入り一覧 |
 
-## 📝 型定義の具体例（TypeScript）
+## セットアップ
 
-実際の型定義例は以下の通りです。
+```bash
+# 依存関係のインストール
+pnpm install
 
-<details> <summary>型定義（展開して表示）</summary>
-
-```typescript
-// 認証リクエスト（MagicLink）
-type AuthRequest = {
-  email: string;
-};
-
-type AuthResponse = {
-  token: string;
-};
-
-// バリスタプロフィール作成・更新リクエスト
-type BaristaProfileRequest = {
-  displayName: string;
-  iconUrl?: string;
-  bio?: string;
-  snsLinks?: string[];
-  shopName?: string;
-};
-
-// 評価カテゴリ・タグの取得レスポンス
-type EvaluationCategory = {
-  id: string;
-  name: string;
-  tags: {
-    id: string;
-    name: string;
-  }[];
-};
-
-type GetEvaluationCategoriesResponse = {
-  categories: EvaluationCategory[];
-  commonTags: { id: string; name: string }[];
-};
-
-// バリスタ評価リクエスト
-type EvaluateBaristaRequest = {
-  baristaId: string;
-  categoryId: string;
-  selectedTagIds: string[];
-};
-
-// チップ送信リクエスト（Stripe決済対応）
-type SendTipRequest = {
-  baristaId: string;
-  amount: number;
-  message?: string; // 任意の自由記述コメント
-};
-
-// チップ送信レスポンス（Stripe決済IntentIDを返却）
-type SendTipResponse = {
-  paymentIntentId: string;
-};
-
-// お気に入り追加リクエスト
-type AddFavoriteRequest = {
-  baristaId: string;
-};
-
-// お気に入り一覧レスポンス
-type FavoriteListResponse = {
-  favorites: BaristaProfileResponse[];
-};
+# 開発環境の起動
+pnpm dev
 ```
 
-</details>
+## 特徴
+
+- 型安全性: バックエンドとフロントエンド間で API の型を共有
+- バリューオブジェクトパターンによるドメインモデルの堅牢な実装
+- Zod を使用した厳密なバリデーション
+- Cloudflare Workers によるエッジでの高速な実行
+
+## ディレクトリ構造
+
+詳細な構造については、`app/backend/README.md`と`app/web/README.md`を参照してください。

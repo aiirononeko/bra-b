@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { createAuth } from "./auth";
 import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1";
+
+import { createAuth } from "./auth";
 import type { Env } from "./types";
 import * as schema from "./db/schema";
+import { baristaRoutes } from "./presentation/routes/barista-routes";
 
 type Variables = {
   db: DrizzleD1Database<typeof schema>;
@@ -26,6 +28,8 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+app.route("/", baristaRoutes);
+
 // 認証APIのルート（BetterAuthの公式ドキュメントに従う必要あり）
 app.get("/auth/session", async (c) => {
   const auth = c.get("auth");
@@ -39,14 +43,7 @@ app.get("/user/me", async (c) => {
   return c.json({ message: "未実装" });
 });
 
-// 他のエンドポイント（そのまま）
-app.get("/baristas/:baristaId", async (c) => {
-  const baristaId = c.req.param("baristaId");
-  return c.json({
-    message: `バリスタID: ${baristaId}のプロフィールが取得されました（仮実装）`,
-  });
-});
-
+// 評価カテゴリー取得エンドポイント
 app.get("/evaluation/categories", async (c) => {
   return c.json({
     categories: [
@@ -58,7 +55,14 @@ app.get("/evaluation/categories", async (c) => {
           { id: "tag2", name: "気遣いがある" },
         ],
       },
-      // 残りのデータは同じ
+      {
+        id: "cat2",
+        name: "ドリンク品質",
+        tags: [
+          { id: "tag3", name: "ラテアートが美しい" },
+          { id: "tag4", name: "味が素晴らしい" },
+        ],
+      },
     ],
     commonTags: [
       { id: "common1", name: "またお願いしたい" },
@@ -68,3 +72,5 @@ app.get("/evaluation/categories", async (c) => {
 });
 
 export default app;
+
+export type AppType = typeof app;

@@ -1,6 +1,7 @@
 name = "bra-b-backend"
 main = "src/presentation/index.ts"
 compatibility_date = "2023-12-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Cloudflare D1データベースの設定
 [[d1_databases]]

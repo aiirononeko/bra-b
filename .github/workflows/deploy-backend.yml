@@ -55,6 +55,10 @@ jobs:
           echo "Applying migrations to D1 database..."
           pnpm exec wrangler d1 migrations apply brab_db
 
+      - name: Generate Prisma Client
+        working-directory: app/backend
+        run: pnpm exec prisma generate
+
       - name: Deploy to Cloudflare Workers
         id: deploy
         env:

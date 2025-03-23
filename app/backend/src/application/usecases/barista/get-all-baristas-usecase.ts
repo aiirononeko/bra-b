@@ -3,14 +3,28 @@ import type { BaristaRepository } from "../../../domain/repositories/barista-rep
 
 /**
  * バリスタ一覧取得ユースケース
+ *
+ * システムに登録されているすべてのバリスタの一覧を取得する
  */
 export class GetAllBaristasUseCase {
+  /**
+   * コンストラクタ
+   *
+   * @param baristaRepository - バリスタリポジトリのインスタンス
+   */
   constructor(private readonly baristaRepository: BaristaRepository) {}
 
   /**
    * バリスタの一覧を取得する
+   *
+   * @returns バリスタの一覧情報
    */
   async execute(): Promise<BaristaListItem[]> {
-    return this.baristaRepository.findAll();
+    try {
+      return await this.baristaRepository.getAllBaristas();
+    } catch (error) {
+      console.error("バリスタ一覧取得エラー:", error);
+      throw new Error("バリスタ一覧の取得に失敗しました");
+    }
   }
 }

@@ -9,12 +9,21 @@ import { prismaMiddleware } from "./middlewares/prisma";
 import type { BetterAuthInstance } from "./common";
 
 import baristaRoutes from "./routes/barista-routes";
-// import authRoutes from "./routes/auth-routes";
 
+/**
+ * アプリケーションのメインエントリーポイント
+ *
+ * Honoアプリケーションの設定、ミドルウェアの適用、ルートの定義を行う
+ */
 export const app = buildHono();
 
-// Middleware
+/**
+ * ミドルウェアの設定
+ */
+// ロギングミドルウェア
 app.use("*", logger());
+
+// CORSミドルウェア
 app.use(
   "*",
   cors({
@@ -24,6 +33,8 @@ app.use(
     credentials: true,
   }),
 );
+
+// セキュリティヘッダーミドルウェア
 app.use("*", secureHeaders());
 
 // Prismaクライアントのミドルウェア
@@ -35,25 +46,48 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-// ヘルスチェック
-app.get("/health", (c) => c.json({ status: "ok" }));
+/**
+ * ヘルスチェックエンドポイント
+ *
+ * GET /health
+ * @returns アプリケーションのステータス情報
+ */
+app.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  }),
+);
 
-// BetterAuthのルートを追加
+/**
+ * 認証ルートの設定
+ *
+ * BetterAuthライブラリによる認証エンドポイント
+ */
 app.on(["POST", "GET"], "/auth/*", (c) => {
   const authInstance = c.get("auth") || auth;
   return authInstance.handler(c.req.raw);
 });
 
-// APIルート
-export const routes = app
-  // .route("/auth", authRoutes)
-  .route("/baristas", baristaRoutes)
-  .onError((err, c) => {
-    if (err instanceof HTTPException) {
-      return err.getResponse();
-    }
-    console.error("Unhandled error:", err);
-    return c.json({ error: "Internal Server Error" }, 500);
-  });
+/**
+ * APIルートの設定
+ */
+export const routes = app.route("/baristas", baristaRoutes).onError((err, c) => {
+  // HTTPExceptionの場合はそのレスポンスを返す
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
+
+  // 予期しないエラーの場合はログに出力し、一般的なエラーメッセージを返す
+  console.error("Unhandled error:", err);
+  return c.json(
+    {
+      success: false,
+      error: "Internal Server Error",
+      message: "サーバー内部でエラーが発生しました",
+    },
+    500,
+  );
+});
 
 export type AppType = typeof routes;

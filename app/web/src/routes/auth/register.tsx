@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 
-import { RegisterForm } from "../../components/auth/RegisterForm";
+import { RegisterForm } from "../../components/auth/register-form";
 import { isAuthenticated } from "../../lib/auth";
 
 export const Route = createFileRoute("/auth/register")({

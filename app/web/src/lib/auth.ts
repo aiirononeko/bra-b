@@ -127,6 +127,63 @@ export const signOut = async (): Promise<void> => {
   }
 };
 
+/**
+ * ユーザープロフィールを更新する
+ *
+ * @param data 更新するプロフィール情報
+ * @returns 更新後のユーザー情報
+ */
+export const updateProfile = async (data: { name?: string; avatar?: string }) => {
+  try {
+    const response = await fetch(`${API_URL}/auth/profile`, {
+      method: "PATCH",
+      headers: await getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "プロフィール更新に失敗しました");
+    }
+
+    // 成功時はキャッシュを更新
+    queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
+
+    return result.user;
+  } catch (error) {
+    console.error("プロフィール更新中にエラーが発生しました", error);
+    throw error;
+  }
+};
+
+/**
+ * パスワードを変更する
+ *
+ * @param data パスワード変更データ
+ * @returns 変更結果
+ */
+export const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
+  try {
+    const response = await fetch(`${API_URL}/auth/change-password`, {
+      method: "POST",
+      headers: await getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "パスワード変更に失敗しました");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("パスワード変更中にエラーが発生しました", error);
+    throw error;
+  }
+};
+
 // エクスポートして他のコンポーネントから利用できるようにする
 // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
 export const { signIn, signUp, useSession } = authClient;

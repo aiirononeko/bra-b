@@ -28,6 +28,8 @@
 ```mermaid
 erDiagram
 
+User ||--o{ Session : has
+User ||--o{ Account : has
 User ||--o{ Profile : has
 User ||--o{ Evaluation : evaluates
 User ||--o{ Tip : gives
@@ -39,15 +41,52 @@ Profile ||--o{ Favorite : saved_by
 
 Evaluation ||--o{ EvaluationDetail : has
 EvaluationDetail }o--|| EvaluationItem : references
-EvaluationItem ||--o{ EvaluationCategory : belongs_to
+EvaluationItem }o--|| EvaluationCategory : belongs_to
 
 User {
   UUID id PK
   string email
+  boolean email_verified
   string auth_type
   datetime created_at
   datetime updated_at
   datetime deleted_at
+}
+
+Session {
+  UUID id PK
+  datetime expires_at
+  string token
+  datetime created_at
+  datetime updated_at
+  string ip_address
+  string user_agent
+  UUID user_id FK
+}
+
+Account {
+  UUID id PK
+  string account_id
+  string provider_id
+  UUID user_id FK
+  string access_token
+  string refresh_token
+  string id_token
+  datetime access_token_expires_at
+  datetime refresh_token_expires_at
+  string scope
+  string password
+  datetime created_at
+  datetime updated_at
+}
+
+Verification {
+  UUID id PK
+  string identifier
+  string value
+  datetime expires_at
+  datetime created_at
+  datetime updated_at
 }
 
 Profile {
@@ -97,7 +136,7 @@ Tip {
   UUID id PK
   UUID barista_profile_id FK
   UUID sender_user_id FK
-  float amount
+  int amount
   datetime sent_at
   string payment_info
   string message

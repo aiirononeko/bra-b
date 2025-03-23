@@ -2,10 +2,52 @@
 CREATE TABLE "users" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
-    "authType" TEXT NOT NULL,
+    "email_verified" BOOLEAN NOT NULL,
+    "auth_type" TEXT NOT NULL,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" DATETIME
+);
+
+-- CreateTable
+CREATE TABLE "sessions" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "expires_at" DATETIME NOT NULL,
+    "token" TEXT NOT NULL,
+    "created_at" DATETIME NOT NULL,
+    "updated_at" DATETIME NOT NULL,
+    "ip_address" TEXT,
+    "user_agent" TEXT,
+    "userId" TEXT NOT NULL,
+    CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "accounts" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "account_id" TEXT NOT NULL,
+    "provider_id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "access_token" TEXT,
+    "refresh_token" TEXT,
+    "id_token" TEXT,
+    "access_token_expires_at" DATETIME,
+    "refresh_token_expires_at" DATETIME,
+    "scope" TEXT,
+    "password" TEXT,
+    "created_at" DATETIME NOT NULL,
+    "updated_at" DATETIME NOT NULL,
+    CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "verifications" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "identifier" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "expires_at" DATETIME NOT NULL,
+    "created_at" DATETIME,
+    "updated_at" DATETIME
 );
 
 -- CreateTable
@@ -88,6 +130,9 @@ CREATE TABLE "favorites" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sessions_token_key" ON "sessions"("token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "favorites_user_id_barista_profile_id_key" ON "favorites"("user_id", "barista_profile_id");

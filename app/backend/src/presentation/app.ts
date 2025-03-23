@@ -9,6 +9,7 @@ import { prismaMiddleware } from "./middlewares/prisma";
 import type { BetterAuthInstance } from "./common";
 
 import baristaRoutes from "./routes/barista-routes";
+import authRoutes from "./routes/auth-routes";
 
 /**
  * アプリケーションのメインエントリーポイント
@@ -72,22 +73,25 @@ app.on(["POST", "GET"], "/auth/*", (c) => {
 /**
  * APIルートの設定
  */
-export const routes = app.route("/baristas", baristaRoutes).onError((err, c) => {
-  // HTTPExceptionの場合はそのレスポンスを返す
-  if (err instanceof HTTPException) {
-    return err.getResponse();
-  }
+export const routes = app
+  .route("/auth", authRoutes)
+  .route("/baristas", baristaRoutes)
+  .onError((err, c) => {
+    // HTTPExceptionの場合はそのレスポンスを返す
+    if (err instanceof HTTPException) {
+      return err.getResponse();
+    }
 
-  // 予期しないエラーの場合はログに出力し、一般的なエラーメッセージを返す
-  console.error("Unhandled error:", err);
-  return c.json(
-    {
-      success: false,
-      error: "Internal Server Error",
-      message: "サーバー内部でエラーが発生しました",
-    },
-    500,
-  );
-});
+    // 予期しないエラーの場合はログに出力し、一般的なエラーメッセージを返す
+    console.error("Unhandled error:", err);
+    return c.json(
+      {
+        success: false,
+        error: "Internal Server Error",
+        message: "サーバー内部でエラーが発生しました",
+      },
+      500,
+    );
+  });
 
 export type AppType = typeof routes;

@@ -154,11 +154,14 @@ pnpm deploy
 データベースのマイグレーションは Prisma Migrate を使用して管理しています：
 
 ```bash
-# マイグレーションの生成と適用
-pnpm prisma migrate dev --name <マイグレーション名>
+# D1用マイグレーションファイルの生成
+pnpm wrangler d1 migrations create brab_db <マイグレーション名>
+
+# schema.prismaの内容をマイグレーションファイルに反映
+pnpm prisma migrate diff --from-empty --to-schema-datamodel ./prisma/schema.prisma --script --output migrations/<生成したマイグレーションファイル名>
 
 # 本番環境へのマイグレーション適用
-pnpm prisma migrate deploy
+pnpm wrangler d1 migrations apply brab_db --remote
 ```
 
 ## Cloudflare D1 との連携

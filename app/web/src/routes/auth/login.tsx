@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 
-import { LoginForm } from "../../components/auth/LoginForm";
+import { LoginForm } from "../../components/auth/login-form";
 import { isAuthenticated } from "../../lib/auth";
 
 /**

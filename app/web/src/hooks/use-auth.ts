@@ -1,5 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { authClient, useSession } from "../lib/auth";
+import {
+  authClient,
+  useSession,
+  AUTH_SESSION_KEY,
+  updateProfile as updateProfileAPI,
+  changePassword as changePasswordAPI,
+} from "../lib/auth";
 
 // クエリキー（セッション情報の一意な識別子）
 const SESSION_KEY = ["session"];
@@ -166,6 +172,91 @@ export const useEmailSignUp = () => {
     onSuccess: () => {
       // セッション情報のキャッシュを更新
       queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+    },
+  });
+};
+
+/**
+ * プロフィール更新のパラメータ
+ */
+export interface UpdateProfileParams {
+  /** ユーザーの表示名 */
+  name?: string;
+  /** ユーザーのアバター画像URL */
+  avatar?: string;
+}
+
+/**
+ * ユーザープロフィールを更新するためのフック
+ *
+ * ユーザーのプロフィール情報（名前、アバターなど）を更新する
+ *
+ * @returns プロフィール更新処理のmutation
+ */
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<unknown, AuthError, UpdateProfileParams>({
+    mutationFn: async (data: UpdateProfileParams) => {
+      try {
+        return await updateProfileAPI(data);
+      } catch (error) {
+        // エラーオブジェクトの標準化
+        if (error instanceof Error) {
+          throw {
+            message: error.message,
+            code: "auth/profile-update-error",
+          } as AuthError;
+        }
+        throw {
+          message: "プロフィールの更新中にエラーが発生しました",
+          code: "auth/unknown-error",
+        } as AuthError;
+      }
+    },
+    onSuccess: () => {
+      // 認証情報のキャッシュを更新
+      queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
+      queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+    },
+  });
+};
+
+/**
+ * パスワード変更のパラメータ
+ */
+export interface ChangePasswordParams {
+  /** 現在のパスワード */
+  currentPassword: string;
+  /** 新しいパスワード */
+  newPassword: string;
+}
+
+/**
+ * ユーザーのパスワードを変更するためのフック
+ *
+ * 現在のパスワードを確認し、新しいパスワードに変更する
+ *
+ * @returns パスワード変更処理のmutation
+ */
+export const useChangePassword = () => {
+  return useMutation<unknown, AuthError, ChangePasswordParams>({
+    mutationFn: async ({ currentPassword, newPassword }: ChangePasswordParams) => {
+      try {
+        return await changePasswordAPI({ currentPassword, newPassword });
+      } catch (error) {
+        // エラーオブジェクトの標準化
+        if (error instanceof Error) {
+          throw {
+            message: error.message,
+            code: "auth/password-change-error",
+          } as AuthError;
+        }
+        throw {
+          message: "パスワードの変更中にエラーが発生しました",
+          code: "auth/unknown-error",
+        } as AuthError;
+      }
     },
   });
 };

@@ -16,6 +16,7 @@ import { Route as ProtedtedImport } from './routes/_protedted'
 import { Route as IndexImport } from './routes/index'
 import { Route as AuthRegisterImport } from './routes/auth/register'
 import { Route as AuthLoginImport } from './routes/auth/login'
+import { Route as ProtectedSettingsImport } from './routes/_protected/settings'
 import { Route as ProtectedDashboardImport } from './routes/_protected/dashboard'
 
 // Create/Update Routes
@@ -46,6 +47,12 @@ const AuthRegisterRoute = AuthRegisterImport.update({
 const AuthLoginRoute = AuthLoginImport.update({
   id: '/auth/login',
   path: '/auth/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ProtectedSettingsRoute = ProtectedSettingsImport.update({
+  id: '/_protected/settings',
+  path: '/settings',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -87,6 +94,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardImport
       parentRoute: typeof rootRoute
     }
+    '/_protected/settings': {
+      id: '/_protected/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ProtectedSettingsImport
+      parentRoute: typeof rootRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -111,6 +125,7 @@ export interface FileRoutesByFullPath {
   '': typeof ProtedtedRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/settings': typeof ProtectedSettingsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
 }
@@ -120,6 +135,7 @@ export interface FileRoutesByTo {
   '': typeof ProtedtedRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/settings': typeof ProtectedSettingsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
 }
@@ -130,6 +146,7 @@ export interface FileRoutesById {
   '/_protedted': typeof ProtedtedRoute
   '/about': typeof AboutRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/settings': typeof ProtectedSettingsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
 }
@@ -141,16 +158,25 @@ export interface FileRouteTypes {
     | ''
     | '/about'
     | '/dashboard'
+    | '/settings'
     | '/auth/login'
     | '/auth/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '' | '/about' | '/dashboard' | '/auth/login' | '/auth/register'
+  to:
+    | '/'
+    | ''
+    | '/about'
+    | '/dashboard'
+    | '/settings'
+    | '/auth/login'
+    | '/auth/register'
   id:
     | '__root__'
     | '/'
     | '/_protedted'
     | '/about'
     | '/_protected/dashboard'
+    | '/_protected/settings'
     | '/auth/login'
     | '/auth/register'
   fileRoutesById: FileRoutesById
@@ -161,6 +187,7 @@ export interface RootRouteChildren {
   ProtedtedRoute: typeof ProtedtedRoute
   AboutRoute: typeof AboutRoute
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
 }
@@ -170,6 +197,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtedtedRoute: ProtedtedRoute,
   AboutRoute: AboutRoute,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedSettingsRoute: ProtectedSettingsRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
 }
@@ -188,6 +216,7 @@ export const routeTree = rootRoute
         "/_protedted",
         "/about",
         "/_protected/dashboard",
+        "/_protected/settings",
         "/auth/login",
         "/auth/register"
       ]
@@ -203,6 +232,9 @@ export const routeTree = rootRoute
     },
     "/_protected/dashboard": {
       "filePath": "_protected/dashboard.tsx"
+    },
+    "/_protected/settings": {
+      "filePath": "_protected/settings.tsx"
     },
     "/auth/login": {
       "filePath": "auth/login.tsx"

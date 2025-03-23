@@ -2,12 +2,59 @@ import { createAuthClient } from "@better-auth/client";
 import { QueryClient } from "@tanstack/react-query";
 
 /**
+ * セッション情報の型定義
+ * BetterAuthの型情報が不完全なため独自に定義
+ */
+export interface AuthSession {
+  /** セッションの一意なID */
+  id: string;
+  /** ユーザーの一意なID */
+  userId: string;
+  /** セッションの有効期限 */
+  expiresAt: string | Date;
+  /** セッションデータ */
+  data?: Record<string, unknown>;
+}
+
+/**
+ * ユーザー情報の型定義
+ * BetterAuthの型情報が不完全なため独自に定義
+ */
+export interface AuthUser {
+  /** ユーザーの一意なID */
+  id: string;
+  /** ユーザーのメールアドレス */
+  email?: string;
+  /** ユーザーの表示名 */
+  name?: string;
+  /** ユーザーの追加データ */
+  [key: string]: unknown;
+}
+
+/**
+ * 認証状態のレスポンス型定義
+ */
+export interface AuthSessionResponse {
+  /** セッション情報 */
+  data: {
+    /** セッションデータ */
+    session?: AuthSession;
+    /** ユーザーデータ */
+    user?: AuthUser;
+  } | null;
+  /** エラー情報 */
+  error: Error | null;
+}
+
+/**
  * 認証状態を追跡するためのクエリキー
+ * 認証関連のキャッシュを管理するために使用
  */
 export const AUTH_SESSION_KEY = ["auth", "session"];
 
 /**
  * BetterAuthクライアントの設定
+ * 認証に関連する操作を提供するクライアント
  */
 export const authClient = createAuthClient();
 
@@ -18,13 +65,14 @@ authClient.baseURL = `${API_URL}/auth`;
 
 /**
  * TanStack Queryのクエリクライアント
- * アプリケーション全体で使用する単一のインスタンス
+ * キャッシュとデータフェッチングを管理する設定済みインスタンス
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1分
-      retry: 1,
+      staleTime: 60 * 1000, // 1分間のキャッシュ保持
+      retry: 1, // エラー時に1回だけ再試行
+      refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化
     },
   },
 });

@@ -1,9 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { useAuthSession, useSignOut } from "../../hooks/use-auth";
+import { isAuthenticated } from "../../lib/auth";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   component: DashboardPage,
+  beforeLoad: async () => {
+    // ログイン状態を確認
+    const isLoggedIn = await isAuthenticated();
+    if (!isLoggedIn) {
+      throw redirect({ to: "/login" });
+    }
+
+    // メタデータの設定
+    return {
+      title: "ダッシュボード | ブラービ",
+      description: "",
+    };
+  },
 });
 
 function DashboardPage() {
@@ -27,10 +41,10 @@ function DashboardPage() {
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
           <h2 className="text-lg font-semibold mb-2">ユーザー情報</h2>
           <p>
-            <span className="font-medium">名前:</span> {session?.user.name}
+            <span className="font-medium">名前:</span> {session?.data?.user?.name}
           </p>
           <p>
-            <span className="font-medium">メール:</span> {session?.user.email}
+            <span className="font-medium">メール:</span> {session?.data?.user?.email}
           </p>
         </div>
       </div>

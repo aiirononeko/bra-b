@@ -1,9 +1,7 @@
-import { createAuthClient } from "@better-auth/client";
 import { QueryClient } from "@tanstack/react-query";
 
 /**
  * セッション情報の型定義
- * BetterAuthの型情報が不完全なため独自に定義
  */
 export interface AuthSession {
   /** セッションの一意なID */
@@ -18,7 +16,6 @@ export interface AuthSession {
 
 /**
  * ユーザー情報の型定義
- * BetterAuthの型情報が不完全なため独自に定義
  */
 export interface AuthUser {
   /** ユーザーの一意なID */
@@ -44,6 +41,37 @@ export interface AuthSessionResponse {
   } | null;
   /** エラー情報 */
   error: Error | null;
+  /** ロード中かどうか */
+  isLoading: boolean;
+}
+
+/**
+ * サインイン（ログイン）レスポンスの型定義
+ */
+export interface SignInResponse {
+  success: boolean;
+  message?: string;
+  user?: AuthUser;
+  session?: AuthSession;
+}
+
+/**
+ * サインアップ（ユーザー登録）レスポンスの型定義
+ */
+export interface SignUpResponse {
+  success: boolean;
+  message?: string;
+  user?: AuthUser;
+  session?: AuthSession;
+}
+
+/**
+ * 認証エラーの型定義
+ */
+export interface AuthError {
+  message: string;
+  code?: string;
+  status?: number;
 }
 
 /**
@@ -53,15 +81,10 @@ export interface AuthSessionResponse {
 export const AUTH_SESSION_KEY = ["auth", "session"];
 
 /**
- * BetterAuthクライアントの設定
- * 認証に関連する操作を提供するクライアント
+ * APIのベースURL
  */
-export const authClient = createAuthClient();
-
-// APIのエンドポイントを設定
-const API_URL = import.meta.env.VITE_API_URL || "";
-// @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-authClient.baseURL = `${API_URL}/auth`;
+export const API_URL = import.meta.env.VITE_API_BASE_URL || "";
+export const AUTH_API_URL = `${API_URL}/auth`;
 
 /**
  * TanStack Queryのクエリクライアント
@@ -78,18 +101,50 @@ export const queryClient = new QueryClient({
 });
 
 /**
+ * セッション情報を取得する
+ */
+export const fetchSession = async (): Promise<AuthSessionResponse> => {
+  try {
+    const response = await fetch(`${AUTH_API_URL}/session`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`セッション取得エラー: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return {
+      data: result.data || null,
+      error: null,
+      isLoading: false,
+    };
+  } catch (error) {
+    console.error("セッション情報の取得中にエラーが発生しました", error);
+    return {
+      data: null,
+      error: error instanceof Error ? error : new Error("不明なエラー"),
+      isLoading: false,
+    };
+  }
+};
+
+/**
  * サインイン状態かどうかを確認する
  */
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
     // セッションをキャッシュから取得（なければフェッチ）
-    const sessionData = queryClient.getQueryData(AUTH_SESSION_KEY);
-    if (sessionData) return true;
+    const sessionData = queryClient.getQueryData<AuthSessionResponse>(AUTH_SESSION_KEY);
+    if (sessionData?.data?.session) return true;
 
     // キャッシュになければ直接フェッチ
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-    const session = await authClient.getSession();
-    return !!session.data;
+    const session = await fetchSession();
+    return !!session.data?.session;
   } catch (error) {
     console.error("認証状態の確認中にエラーが発生しました", error);
     return false;
@@ -97,13 +152,115 @@ export const isAuthenticated = async (): Promise<boolean> => {
 };
 
 /**
+ * メールアドレスとパスワードを使用してサインイン（ログイン）する
+ */
+export const signIn = async (params: {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}): Promise<SignInResponse> => {
+  try {
+    const response = await fetch(`${AUTH_API_URL}/signin`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: params.email,
+        password: params.password,
+        rememberMe: params.rememberMe ?? true,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw {
+        message: result.message || "ログインに失敗しました",
+        code: response.status === 401 ? "auth/invalid-credentials" : "auth/sign-in-error",
+        status: response.status,
+      } as AuthError;
+    }
+
+    // セッション情報をキャッシュに格納
+    queryClient.setQueryData(AUTH_SESSION_KEY, {
+      data: {
+        session: result.session,
+        user: result.user,
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("サインイン中にエラーが発生しました", error);
+    throw error;
+  }
+};
+
+/**
+ * 新規ユーザー登録（サインアップ）する
+ */
+export const signUp = async (params: {
+  email: string;
+  password: string;
+  name: string;
+}): Promise<SignUpResponse> => {
+  try {
+    const response = await fetch(`${AUTH_API_URL}/signup`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: params.email,
+        password: params.password,
+        name: params.name,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw {
+        message: result.message || "登録に失敗しました",
+        code: response.status === 409 ? "auth/email-already-in-use" : "auth/sign-up-error",
+        status: response.status,
+      } as AuthError;
+    }
+
+    // セッション情報をキャッシュに格納
+    queryClient.setQueryData(AUTH_SESSION_KEY, {
+      data: {
+        session: result.session,
+        user: result.user,
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("サインアップ中にエラーが発生しました", error);
+    throw error;
+  }
+};
+
+/**
  * ユーザー情報を取得する
  */
-export const getUser = async () => {
+export const getUser = async (): Promise<AuthUser | null> => {
   try {
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-    const session = await authClient.getSession();
-    return session.data?.user;
+    // キャッシュからユーザー情報を取得
+    const sessionData = queryClient.getQueryData<AuthSessionResponse>(AUTH_SESSION_KEY);
+    if (sessionData?.data?.user) return sessionData.data.user;
+
+    // キャッシュになければ直接フェッチ
+    const session = await fetchSession();
+    return session.data?.user || null;
   } catch (error) {
     console.error("ユーザー情報の取得中にエラーが発生しました", error);
     return null;
@@ -115,8 +272,14 @@ export const getUser = async () => {
  */
 export const signOut = async (): Promise<void> => {
   try {
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-    await authClient.signOut();
+    await fetch(`${AUTH_API_URL}/signout`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
     // セッションキャッシュを無効化
     queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
     // キャッシュから削除
@@ -129,26 +292,38 @@ export const signOut = async (): Promise<void> => {
 
 /**
  * ユーザープロフィールを更新する
- *
- * @param data 更新するプロフィール情報
- * @returns 更新後のユーザー情報
  */
-export const updateProfile = async (data: { name?: string; avatar?: string }) => {
+export const updateProfile = async (data: {
+  name?: string;
+  avatar?: string;
+}): Promise<AuthUser> => {
   try {
-    const response = await fetch(`${API_URL}/auth/profile`, {
+    const response = await fetch(`${AUTH_API_URL}/profile`, {
       method: "PATCH",
-      headers: await getAuthHeaders(),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
     const result = await response.json();
 
-    if (!result.success) {
+    if (!response.ok) {
       throw new Error(result.message || "プロフィール更新に失敗しました");
     }
 
-    // 成功時はキャッシュを更新
-    queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
+    // セッション情報をキャッシュを更新
+    const sessionData = queryClient.getQueryData<AuthSessionResponse>(AUTH_SESSION_KEY);
+    if (sessionData?.data) {
+      queryClient.setQueryData(AUTH_SESSION_KEY, {
+        ...sessionData,
+        data: {
+          ...sessionData.data,
+          user: result.user,
+        },
+      });
+    }
 
     return result.user;
   } catch (error) {
@@ -159,21 +334,24 @@ export const updateProfile = async (data: { name?: string; avatar?: string }) =>
 
 /**
  * パスワードを変更する
- *
- * @param data パスワード変更データ
- * @returns 変更結果
  */
-export const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${API_URL}/auth/change-password`, {
+    const response = await fetch(`${AUTH_API_URL}/change-password`, {
       method: "POST",
-      headers: await getAuthHeaders(),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(data),
     });
 
     const result = await response.json();
 
-    if (!result.success) {
+    if (!response.ok) {
       throw new Error(result.message || "パスワード変更に失敗しました");
     }
 
@@ -184,28 +362,12 @@ export const changePassword = async (data: { currentPassword: string; newPasswor
   }
 };
 
-// エクスポートして他のコンポーネントから利用できるようにする
-// @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-export const { signIn, signUp, useSession } = authClient;
-
 /**
- * 認証リクエスト時のヘッダーを設定するヘルパー関数
- * 他のAPIリクエストで認証トークンを付与する際に使用
+ * APIリクエスト用のヘッダーを取得する
+ * 認証が必要なAPIリクエストで使用
  */
-export const getAuthHeaders = async (): Promise<HeadersInit> => {
-  const headers: HeadersInit = {
+export const getAuthHeaders = (): HeadersInit => {
+  return {
     "Content-Type": "application/json",
   };
-
-  try {
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-    const cookie = authClient.getCookie?.();
-    if (cookie) {
-      headers.Cookie = cookie;
-    }
-  } catch (error) {
-    console.error("認証ヘッダーの取得中にエラー", error);
-  }
-
-  return headers;
 };

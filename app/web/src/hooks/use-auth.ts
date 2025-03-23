@@ -1,23 +1,19 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
-  authClient,
-  useSession,
   AUTH_SESSION_KEY,
   updateProfile as updateProfileAPI,
   changePassword as changePasswordAPI,
+  signOut,
+  signUp,
+  signIn,
+  fetchSession,
+  type AuthUser,
+  type AuthSessionResponse,
+  type SignInResponse,
+  type SignUpResponse,
+  type AuthError,
 } from "../lib/auth";
-
-// クエリキー（セッション情報の一意な識別子）
-const SESSION_KEY = ["session"];
-
-/**
- * 認証関連のエラー型定義
- */
-export interface AuthError {
-  message: string;
-  code?: string;
-  status?: number;
-}
 
 /**
  * メールサインインのパラメータ
@@ -46,12 +42,27 @@ export interface EmailSignUpParams {
 /**
  * 現在のセッション情報を取得するフック
  *
- * ユーザーが認証されているかどうかと、現在のセッション情報を提供する
+ * TanStack Queryを使用してセッション情報をフェッチし、キャッシュする
  *
  * @returns セッション情報と認証状態
  */
 export const useAuthSession = () => {
-  return useSession();
+  return useQuery<AuthSessionResponse, Error>({
+    queryKey: AUTH_SESSION_KEY,
+    queryFn: fetchSession,
+    staleTime: 5 * 60 * 1000, // 5分間キャッシュを保持
+    refetchOnWindowFocus: true, // ウィンドウフォーカス時に再取得
+  });
+};
+
+/**
+ * 現在のユーザー情報を取得するフック
+ *
+ * @returns 現在のユーザー情報
+ */
+export const useCurrentUser = () => {
+  const { data: sessionData } = useAuthSession();
+  return sessionData?.data?.user;
 };
 
 /**
@@ -64,23 +75,17 @@ export const useAuthSession = () => {
 export const useEmailSignIn = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, AuthError, EmailSignInParams>({
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
+  return useMutation<SignInResponse, AuthError, EmailSignInParams>({
     mutationFn: async ({ email, password, rememberMe = true }: EmailSignInParams) => {
       try {
-        // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-        return await authClient.signIn.email({
+        return await signIn({
           email,
           password,
           rememberMe,
         });
       } catch (error) {
-        // エラーオブジェクトの標準化
-        if (error instanceof Error) {
-          throw {
-            message: error.message,
-            code: "auth/sign-in-error",
-          } as AuthError;
+        if (error && typeof error === "object" && "message" in error) {
+          throw error as AuthError;
         }
         throw {
           message: "不明なエラーが発生しました",
@@ -88,9 +93,9 @@ export const useEmailSignIn = () => {
         } as AuthError;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // セッション情報のキャッシュを更新
-      queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+      queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
     },
   });
 };
@@ -105,19 +110,13 @@ export const useEmailSignIn = () => {
 export const useSignOut = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, AuthError, void>({
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
+  return useMutation<void, AuthError, void>({
     mutationFn: async () => {
       try {
-        // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-        return await authClient.signOut();
+        await signOut();
       } catch (error) {
-        // エラーオブジェクトの標準化
-        if (error instanceof Error) {
-          throw {
-            message: error.message,
-            code: "auth/sign-out-error",
-          } as AuthError;
+        if (error && typeof error === "object" && "message" in error) {
+          throw error as AuthError;
         }
         throw {
           message: "ログアウト処理中にエラーが発生しました",
@@ -127,10 +126,9 @@ export const useSignOut = () => {
     },
     onSuccess: () => {
       // セッション情報のキャッシュをクリア
-      queryClient.invalidateQueries({ queryKey: SESSION_KEY });
-
+      queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
       // 他の認証関連データも必要に応じてクリア
-      queryClient.removeQueries({ queryKey: ["user"] });
+      queryClient.resetQueries();
     },
   });
 };
@@ -145,23 +143,17 @@ export const useSignOut = () => {
 export const useEmailSignUp = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, AuthError, EmailSignUpParams>({
-    // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
+  return useMutation<SignUpResponse, AuthError, EmailSignUpParams>({
     mutationFn: async ({ email, password, name }: EmailSignUpParams) => {
       try {
-        // @ts-ignore - BetterAuthクライアントの型定義が不完全なため
-        return await authClient.signUp.email({
+        return await signUp({
           email,
           password,
           name,
         });
       } catch (error) {
-        // エラーオブジェクトの標準化
-        if (error instanceof Error) {
-          throw {
-            message: error.message,
-            code: "auth/sign-up-error",
-          } as AuthError;
+        if (error && typeof error === "object" && "message" in error) {
+          throw error as AuthError;
         }
         throw {
           message: "新規登録中にエラーが発生しました",
@@ -169,9 +161,9 @@ export const useEmailSignUp = () => {
         } as AuthError;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // セッション情報のキャッシュを更新
-      queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+      queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
     },
   });
 };
@@ -196,17 +188,13 @@ export interface UpdateProfileParams {
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, AuthError, UpdateProfileParams>({
+  return useMutation<AuthUser, AuthError, UpdateProfileParams>({
     mutationFn: async (data: UpdateProfileParams) => {
       try {
         return await updateProfileAPI(data);
       } catch (error) {
-        // エラーオブジェクトの標準化
-        if (error instanceof Error) {
-          throw {
-            message: error.message,
-            code: "auth/profile-update-error",
-          } as AuthError;
+        if (error && typeof error === "object" && "message" in error) {
+          throw error as AuthError;
         }
         throw {
           message: "プロフィールの更新中にエラーが発生しました",
@@ -217,7 +205,6 @@ export const useUpdateProfile = () => {
     onSuccess: () => {
       // 認証情報のキャッシュを更新
       queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
-      queryClient.invalidateQueries({ queryKey: SESSION_KEY });
     },
   });
 };
@@ -240,17 +227,13 @@ export interface ChangePasswordParams {
  * @returns パスワード変更処理のmutation
  */
 export const useChangePassword = () => {
-  return useMutation<unknown, AuthError, ChangePasswordParams>({
+  return useMutation<{ success: boolean; message?: string }, AuthError, ChangePasswordParams>({
     mutationFn: async ({ currentPassword, newPassword }: ChangePasswordParams) => {
       try {
         return await changePasswordAPI({ currentPassword, newPassword });
       } catch (error) {
-        // エラーオブジェクトの標準化
-        if (error instanceof Error) {
-          throw {
-            message: error.message,
-            code: "auth/password-change-error",
-          } as AuthError;
+        if (error && typeof error === "object" && "message" in error) {
+          throw error as AuthError;
         }
         throw {
           message: "パスワードの変更中にエラーが発生しました",

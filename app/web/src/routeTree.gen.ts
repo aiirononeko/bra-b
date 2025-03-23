@@ -14,10 +14,10 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as AboutImport } from './routes/about'
 import { Route as ProtedtedImport } from './routes/_protedted'
 import { Route as IndexImport } from './routes/index'
-import { Route as AuthRegisterImport } from './routes/auth/register'
-import { Route as AuthLoginImport } from './routes/auth/login'
 import { Route as ProtectedSettingsImport } from './routes/_protected/settings'
 import { Route as ProtectedDashboardImport } from './routes/_protected/dashboard'
+import { Route as AuthRegisterImport } from './routes/_auth/register'
+import { Route as AuthLoginImport } from './routes/_auth/login'
 
 // Create/Update Routes
 
@@ -38,18 +38,6 @@ const IndexRoute = IndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const AuthRegisterRoute = AuthRegisterImport.update({
-  id: '/auth/register',
-  path: '/auth/register',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const AuthLoginRoute = AuthLoginImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const ProtectedSettingsRoute = ProtectedSettingsImport.update({
   id: '/_protected/settings',
   path: '/settings',
@@ -59,6 +47,18 @@ const ProtectedSettingsRoute = ProtectedSettingsImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardImport.update({
   id: '/_protected/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthRegisterRoute = AuthRegisterImport.update({
+  id: '/_auth/register',
+  path: '/register',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthLoginRoute = AuthLoginImport.update({
+  id: '/_auth/login',
+  path: '/login',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -87,6 +87,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutImport
       parentRoute: typeof rootRoute
     }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterImport
+      parentRoute: typeof rootRoute
+    }
     '/_protected/dashboard': {
       id: '/_protected/dashboard'
       path: '/dashboard'
@@ -101,20 +115,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSettingsImport
       parentRoute: typeof rootRoute
     }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginImport
-      parentRoute: typeof rootRoute
-    }
-    '/auth/register': {
-      id: '/auth/register'
-      path: '/auth/register'
-      fullPath: '/auth/register'
-      preLoaderRoute: typeof AuthRegisterImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
@@ -124,20 +124,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '': typeof ProtedtedRoute
   '/about': typeof AboutRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/register': typeof AuthRegisterRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof ProtedtedRoute
   '/about': typeof AboutRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/register': typeof AuthRegisterRoute
 }
 
 export interface FileRoutesById {
@@ -145,10 +145,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_protedted': typeof ProtedtedRoute
   '/about': typeof AboutRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/register': typeof AuthRegisterRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/register': typeof AuthRegisterRoute
 }
 
 export interface FileRouteTypes {
@@ -157,28 +157,21 @@ export interface FileRouteTypes {
     | '/'
     | ''
     | '/about'
+    | '/login'
+    | '/register'
     | '/dashboard'
     | '/settings'
-    | '/auth/login'
-    | '/auth/register'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | ''
-    | '/about'
-    | '/dashboard'
-    | '/settings'
-    | '/auth/login'
-    | '/auth/register'
+  to: '/' | '' | '/about' | '/login' | '/register' | '/dashboard' | '/settings'
   id:
     | '__root__'
     | '/'
     | '/_protedted'
     | '/about'
+    | '/_auth/login'
+    | '/_auth/register'
     | '/_protected/dashboard'
     | '/_protected/settings'
-    | '/auth/login'
-    | '/auth/register'
   fileRoutesById: FileRoutesById
 }
 
@@ -186,20 +179,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtedtedRoute: typeof ProtedtedRoute
   AboutRoute: typeof AboutRoute
-  ProtectedDashboardRoute: typeof ProtectedDashboardRoute
-  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtedtedRoute: ProtedtedRoute,
   AboutRoute: AboutRoute,
-  ProtectedDashboardRoute: ProtectedDashboardRoute,
-  ProtectedSettingsRoute: ProtectedSettingsRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedSettingsRoute: ProtectedSettingsRoute,
 }
 
 export const routeTree = rootRoute
@@ -215,10 +208,10 @@ export const routeTree = rootRoute
         "/",
         "/_protedted",
         "/about",
+        "/_auth/login",
+        "/_auth/register",
         "/_protected/dashboard",
-        "/_protected/settings",
-        "/auth/login",
-        "/auth/register"
+        "/_protected/settings"
       ]
     },
     "/": {
@@ -230,17 +223,17 @@ export const routeTree = rootRoute
     "/about": {
       "filePath": "about.tsx"
     },
+    "/_auth/login": {
+      "filePath": "_auth/login.tsx"
+    },
+    "/_auth/register": {
+      "filePath": "_auth/register.tsx"
+    },
     "/_protected/dashboard": {
       "filePath": "_protected/dashboard.tsx"
     },
     "/_protected/settings": {
       "filePath": "_protected/settings.tsx"
-    },
-    "/auth/login": {
-      "filePath": "auth/login.tsx"
-    },
-    "/auth/register": {
-      "filePath": "auth/register.tsx"
     }
   }
 }

@@ -3,7 +3,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { RegisterForm } from "../../components/auth/register-form";
 import { isAuthenticated } from "../../lib/auth";
 
-export const Route = createFileRoute("/auth/register")({
+export const Route = createFileRoute("/_auth/register")({
   component: RegisterPage,
   beforeLoad: async () => {
     // すでにログインしている場合はダッシュボードへリダイレクト

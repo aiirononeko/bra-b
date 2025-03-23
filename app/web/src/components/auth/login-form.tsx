@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useEmailSignIn } from "../../hooks/use-auth";
+import { loginSchema, type LoginFormValues } from "../../lib/validations/auth";
 
 /**
  * ログインフォームのプロパティ
- *
- * @property onSuccess - ログイン成功時のコールバック関数
  */
 interface LoginFormProps {
   /** ログイン成功時に実行されるコールバック関数 */
@@ -14,94 +13,175 @@ interface LoginFormProps {
 /**
  * ログインフォームコンポーネント
  *
- * ユーザーがメールアドレスとパスワードでログインするためのフォームを提供する
- * 入力検証とエラーハンドリングを含む
- *
- * @param props - コンポーネントのプロパティ
- * @returns ログインフォームを表示するReactコンポーネント
+ * Zodを使用したバリデーションとBetter Authを使用した認証を実装したログインフォーム
  */
 export const LoginForm = ({ onSuccess }: LoginFormProps) => {
-  // フォームの状態管理
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
+  // フォーム入力値の状態
+  const [formValues, setFormValues] = useState<LoginFormValues>({
+    email: "",
+    password: "",
+    rememberMe: true,
+  });
+
+  // フォームエラーの状態
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormValues, string>>>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Partial<Record<keyof LoginFormValues, boolean>>>({});
 
   // ログイン操作のmutation
   const { mutate: signIn, isPending } = useEmailSignIn();
 
   /**
-   * 入力値のバリデーションを行う
-   *
-   * @returns バリデーションに成功したかどうか
+   * 入力フィールドの変更ハンドラー
    */
-  const validateForm = (): boolean => {
-    const errors: { email?: string; password?: string } = {};
-    let isValid = true;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
 
-    // メールアドレスのバリデーション
-    if (!email) {
-      errors.email = "メールアドレスを入力してください";
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      errors.email = "有効なメールアドレスを入力してください";
-      isValid = false;
+    // チェックボックスの場合は checked 値を使用
+    const fieldValue = type === "checkbox" ? checked : value;
+
+    setFormValues((prev) => ({
+      ...prev,
+      [name]: fieldValue,
+    }));
+
+    // フィールドがタッチされたことをマーク
+    if (!touched[name as keyof LoginFormValues]) {
+      setTouched((prev) => ({
+        ...prev,
+        [name]: true,
+      }));
     }
 
-    // パスワードのバリデーション
-    if (!password) {
-      errors.password = "パスワードを入力してください";
-      isValid = false;
-    } else if (password.length < 8) {
-      errors.password = "パスワードは8文字以上で入力してください";
-      isValid = false;
+    // 変更時にそのフィールドのエラーをクリア
+    if (errors[name as keyof LoginFormValues]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
     }
-
-    setValidationErrors(errors);
-    return isValid;
   };
 
   /**
-   * フォーム送信時の処理
-   *
-   * @param e - フォーム送信イベント
+   * フィールドのフォーカスが外れた際のバリデーション
+   */
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+
+    // フィールドがタッチされたことをマーク
+    setTouched((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+
+    // 単一フィールドのバリデーション
+    validateField(name as keyof LoginFormValues);
+  };
+
+  /**
+   * 特定のフィールドのバリデーション
+   */
+  const validateField = (field: keyof LoginFormValues) => {
+    const result = loginSchema.shape[field].safeParse(formValues[field]);
+
+    if (!result.success) {
+      const error = result.error.format();
+      setErrors((prev) => ({
+        ...prev,
+        [field]: error._errors?.[0] || `${field}が無効です`,
+      }));
+      return false;
+    }
+
+    // エラーをクリア
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+    }));
+    return true;
+  };
+
+  /**
+   * フォーム全体のバリデーション
+   */
+  const validateForm = (): boolean => {
+    const result = loginSchema.safeParse(formValues);
+
+    if (!result.success) {
+      const formattedErrors = result.error.format();
+
+      // 各フィールドのエラーを設定
+      const newErrors: Partial<Record<keyof LoginFormValues, string>> = {};
+
+      if (formattedErrors.email?._errors?.length) {
+        newErrors.email = formattedErrors.email._errors[0];
+      }
+
+      if (formattedErrors.password?._errors?.length) {
+        newErrors.password = formattedErrors.password._errors[0];
+      }
+
+      setErrors(newErrors);
+
+      // 全てのフィールドをタッチ済みにマーク
+      setTouched({
+        email: true,
+        password: true,
+      });
+
+      return false;
+    }
+
+    // エラーをクリア
+    setErrors({});
+    return true;
+  };
+
+  /**
+   * フォーム送信ハンドラー
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGeneralError(null);
 
-    // フォームの状態をリセット
-    setError(null);
-    setValidationErrors({});
-
-    // バリデーションチェック
+    // フォームバリデーション
     if (!validateForm()) {
       return;
     }
 
     try {
       // ログイン処理実行
-      signIn(
-        { email, password },
-        {
-          onSuccess: () => {
-            // ログイン成功時のコールバック
-            onSuccess?.();
-          },
-          onError: (error) => {
-            // ログイン失敗時のエラーハンドリング
-            setError("ログインに失敗しました。メールアドレスとパスワードを確認してください。");
-            console.error("Login error:", error);
-          },
+      signIn(formValues, {
+        onSuccess: () => {
+          // ログイン成功時のコールバック
+          onSuccess?.();
         },
-      );
+        onError: (error) => {
+          // ログイン失敗時のエラーハンドリング
+          if (error.code === "auth/invalid-credentials") {
+            setGeneralError("メールアドレスまたはパスワードが正しくありません。");
+          } else {
+            setGeneralError(
+              error.message || "ログインに失敗しました。認証情報を確認してください。",
+            );
+          }
+          console.error("ログインエラー:", error);
+        },
+      });
     } catch (err) {
       // 予期せぬエラーの処理
-      setError("ログイン処理中にエラーが発生しました。");
-      console.error("Login exception:", err);
+      setGeneralError(
+        "ログイン処理中に予期しないエラーが発生しました。時間をおいて再度お試しください。",
+      );
+      console.error("ログイン例外:", err);
     }
+  };
+
+  /**
+   * 特定フィールドのエラーメッセージを取得
+   */
+  const getErrorMessage = (field: keyof LoginFormValues): string | undefined => {
+    return touched[field] ? errors[field] : undefined;
   };
 
   return (
@@ -117,13 +197,13 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
         </h2>
 
         {/* エラーメッセージ表示 */}
-        {error && (
+        {generalError && (
           <div
             className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
             role="alert"
             aria-live="polite"
           >
-            <span className="block sm:inline">{error}</span>
+            <span className="block sm:inline">{generalError}</span>
           </div>
         )}
 
@@ -134,53 +214,69 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
           </label>
           <input
             className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-              validationErrors.email ? "border-red-500" : ""
+              getErrorMessage("email") ? "border-red-500" : ""
             }`}
             id="email"
             name="email"
             type="email"
             placeholder="メールアドレス"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formValues.email}
+            onChange={handleChange}
+            onBlur={handleBlur}
             required
             aria-required="true"
-            aria-invalid={!!validationErrors.email}
-            aria-describedby={validationErrors.email ? "email-error" : undefined}
+            aria-invalid={!!getErrorMessage("email")}
+            aria-describedby={getErrorMessage("email") ? "email-error" : undefined}
             autoComplete="email"
           />
-          {validationErrors.email && (
+          {getErrorMessage("email") && (
             <p id="email-error" className="text-red-500 text-xs italic mt-1">
-              {validationErrors.email}
+              {getErrorMessage("email")}
             </p>
           )}
         </div>
 
         {/* パスワード入力欄 */}
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
             パスワード
           </label>
           <input
             className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-              validationErrors.password ? "border-red-500" : ""
+              getErrorMessage("password") ? "border-red-500" : ""
             }`}
             id="password"
             name="password"
             type="password"
             placeholder="パスワード"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formValues.password}
+            onChange={handleChange}
+            onBlur={handleBlur}
             required
             aria-required="true"
-            aria-invalid={!!validationErrors.password}
-            aria-describedby={validationErrors.password ? "password-error" : undefined}
+            aria-invalid={!!getErrorMessage("password")}
+            aria-describedby={getErrorMessage("password") ? "password-error" : undefined}
             autoComplete="current-password"
           />
-          {validationErrors.password && (
+          {getErrorMessage("password") && (
             <p id="password-error" className="text-red-500 text-xs italic mt-1">
-              {validationErrors.password}
+              {getErrorMessage("password")}
             </p>
           )}
+        </div>
+
+        {/* リメンバーミー */}
+        <div className="mb-6">
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              name="rememberMe"
+              className="form-checkbox h-4 w-4 text-blue-500 transition duration-150 ease-in-out"
+              checked={formValues.rememberMe}
+              onChange={handleChange}
+            />
+            <span className="ml-2 text-sm text-gray-700">ログイン状態を保持する</span>
+          </label>
         </div>
 
         {/* アクションボタン */}

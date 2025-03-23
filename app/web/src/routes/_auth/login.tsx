@@ -9,7 +9,7 @@ import { isAuthenticated } from "../../lib/auth";
  * ユーザー認証のためのログインページを提供する
  * すでに認証済みの場合はダッシュボードにリダイレクトする
  */
-export const Route = createFileRoute("/auth/login")({
+export const Route = createFileRoute("/_auth/login")({
   component: LoginPage,
   beforeLoad: async () => {
     // すでにログインしている場合はダッシュボードへリダイレクト

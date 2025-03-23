@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ProfileForm } from "../../components/auth/ProfileForm";
-import { PasswordChangeForm } from "../../components/auth/PasswordChangeForm";
+import { ProfileForm } from "../../components/auth/profile-form";
+import { PasswordChangeForm } from "../../components/auth/password-change-form";
 import { useAuthSession } from "../../hooks/use-auth";
 import { isAuthenticated } from "../../lib/auth";
 
@@ -16,6 +16,9 @@ export const Route = createFileRoute("/_protected/settings")({
   beforeLoad: async () => {
     // ログイン状態を確認
     const isLoggedIn = await isAuthenticated();
+    if (!isLoggedIn) {
+      throw redirect({ to: "/login" });
+    }
 
     // メタデータの設定
     return {

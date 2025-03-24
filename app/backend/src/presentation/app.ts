@@ -5,7 +5,9 @@ import { HTTPException } from "hono/http-exception";
 
 import { buildHono } from "./common";
 import { prismaMiddleware } from "./middlewares/prisma";
+import { authMiddleware } from "./middlewares/auth";
 
+import authRoutes from "./routes/auth-routes";
 import baristaRoutes from "./routes/barista-routes";
 
 /**
@@ -26,7 +28,7 @@ app.use(
   "*",
   cors({
     origin: ["http://localhost:5173", "https://bra-b.com"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowMethods: ["POST", "GET", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
@@ -37,6 +39,9 @@ app.use("*", secureHeaders());
 
 // Prismaクライアントのミドルウェア
 app.use("*", prismaMiddleware);
+
+// BetterAuthインスタンスのミドルウェア
+app.use("*", authMiddleware);
 
 /**
  * ヘルスチェックエンドポイント
@@ -52,24 +57,47 @@ app.get("/health", (c) =>
 );
 
 /**
- * APIルートの設定
+ * ユーザー情報とセッション情報を設定するミドルウェア
  */
-export const routes = app.route("/baristas", baristaRoutes).onError((err, c) => {
-  // HTTPExceptionの場合はそのレスポンスを返す
-  if (err instanceof HTTPException) {
-    return err.getResponse();
+app.use("*", async (c, next) => {
+  const auth = c.get("auth");
+
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  console.log(session);
+
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    return next();
   }
 
-  // 予期しないエラーの場合はログに出力し、一般的なエラーメッセージを返す
-  console.error("Unhandled error:", err);
-  return c.json(
-    {
-      success: false,
-      error: "Internal Server Error",
-      message: "サーバー内部でエラーが発生しました",
-    },
-    500,
-  );
+  c.set("user", session.user);
+  c.set("session", session.session);
+  return next();
 });
+
+/**
+ * APIルートの設定
+ */
+export const routes = app
+  .route("/auth", authRoutes)
+  .route("/baristas", baristaRoutes)
+  .onError((err, c) => {
+    // HTTPExceptionの場合はそのレスポンスを返す
+    if (err instanceof HTTPException) {
+      return err.getResponse();
+    }
+
+    // 予期しないエラーの場合はログに出力し、一般的なエラーメッセージを返す
+    console.error("Unhandled error:", err);
+    return c.json(
+      {
+        success: false,
+        error: "Internal Server Error",
+        message: "サーバー内部でエラーが発生しました",
+      },
+      500,
+    );
+  });
 
 export type AppType = typeof routes;

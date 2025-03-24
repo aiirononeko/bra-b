@@ -1,5 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+// import { oneTap } from "better-auth/plugins";
+import type { PrismaClient } from "@prisma/client/edge";
 
 import { getPrismaClient } from "../prisma/client";
 import type { Env } from "../../types";
@@ -13,21 +15,27 @@ import type { Env } from "../../types";
  * @param secret - 認証トークンの暗号化に使用する秘密鍵
  * @returns better-authのインスタンス
  */
-function createBetterAuth(prisma: ReturnType<typeof getPrismaClient>, secret: string) {
+const createBetterAuth = (
+  prisma: PrismaClient,
+  secret: string,
+  googleClientId: string,
+  googleClientSecret: string,
+): ReturnType<typeof betterAuth> => {
   return betterAuth({
     secret,
     database: prismaAdapter(prisma, {
       provider: "sqlite",
     }),
+    // // Google oauthを設定する
+    // socialProviders: {
+    //   google: {
+    //     clientId: googleClientId,
+    //     clientSecret: googleClientSecret,
+    //   },
+    // },
+    // // Google one tapのプラグインをONにする
+    // plugins: [oneTap()],
   });
-}
-
-/**
- * デフォルト認証インスタンス
- * 実際の認証処理は初期化後に置き換えられる
- */
-export const auth = {
-  handler: () => new Response("認証システムが初期化されていません", { status: 500 }),
 };
 
 /**
@@ -36,22 +44,27 @@ export const auth = {
  * 環境変数からシークレットを取得し、認証インスタンスを作成
  *
  * @param env - 環境変数を含むオブジェクト
- * @returns better-authのインスタンス、またはエラー時はデフォルトインスタンス
+ * @returns better-authのインスタンス、またはエラー時はnull
  */
-export const createAuthWithEnv = (env: Env) => {
+export const createAuthWithEnv = (env: Env): ReturnType<typeof betterAuth> => {
   try {
-    // 環境変数からシークレットを取得
     const secret = env.BETTER_AUTH_SECRET || "";
-    // シークレットが設定されていない場合はエラー
     if (!secret) {
       throw new Error("BETTER_AUTH_SECRET環境変数が設定されていません");
     }
 
+    const googleClientId = env.GOOGLE_CLIENT_ID || "";
+    const googleClientSecret = env.GOOGLE_CLIENT_SECRET || "";
+
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error("GOOGLE_CLIENT_IDまたはGOOGLE_CLIENT_SECRET環境変数が設定されていません");
+    }
+
     // Prismaクライアントを取得して認証インスタンスを作成
     const prismaClient = getPrismaClient(env);
-    return createBetterAuth(prismaClient, secret);
+    return createBetterAuth(prismaClient, secret, googleClientId, googleClientSecret);
   } catch (error) {
     console.error("認証初期化エラー:", error);
-    return auth;
+    throw error;
   }
 };

@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { createAuthClient } from "better-auth/client";
 
 /**
  * セッション情報の型定義
@@ -84,7 +85,6 @@ export const AUTH_SESSION_KEY = ["auth", "session"];
  * APIのベースURL
  */
 export const API_URL = import.meta.env.VITE_API_BASE_URL || "";
-export const AUTH_API_URL = `${API_URL}/auth`;
 
 /**
  * TanStack Queryのクエリクライアント
@@ -101,25 +101,45 @@ export const queryClient = new QueryClient({
 });
 
 /**
+ * Better Auth クライアントの初期化
+ * シングルトンパターンでクライアントインスタンスを管理
+ */
+let authClientInstance: ReturnType<typeof createAuthClient>;
+
+export function getAuthClient() {
+  if (!authClientInstance) {
+    authClientInstance = createAuthClient({
+      baseURL: API_URL,
+      basePath: "/auth",
+    });
+  }
+  return authClientInstance;
+}
+
+/**
  * セッション情報を取得する
  */
 export const fetchSession = async (): Promise<AuthSessionResponse> => {
   try {
-    const response = await fetch(`${AUTH_API_URL}/session`, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const authClient = getAuthClient();
+    const { data, error } = await authClient.getSession();
 
-    if (!response.ok) {
-      throw new Error(`セッション取得エラー: ${response.status} ${response.statusText}`);
+    if (error) {
+      throw new Error(error.message);
     }
 
-    const result = await response.json();
     return {
-      data: result.data || null,
+      data: data
+        ? {
+            session: {
+              id: data.session.id || "",
+              userId: data.user?.id || "",
+              expiresAt: new Date(),
+              data: {},
+            } as AuthSession,
+            user: data.user as AuthUser,
+          }
+        : null,
       error: null,
       isLoading: false,
     };
@@ -160,40 +180,45 @@ export const signIn = async (params: {
   rememberMe?: boolean;
 }): Promise<SignInResponse> => {
   try {
-    const response = await fetch(`${AUTH_API_URL}/signin`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: params.email,
-        password: params.password,
-        rememberMe: params.rememberMe ?? true,
-      }),
+    const authClient = getAuthClient();
+    const { data, error } = await authClient.signIn.email({
+      email: params.email,
+      password: params.password,
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
+    if (error) {
       throw {
-        message: result.message || "ログインに失敗しました",
-        code: response.status === 401 ? "auth/invalid-credentials" : "auth/sign-in-error",
-        status: response.status,
+        message: error.message || "ログインに失敗しました",
+        code: "auth/sign-in-error",
+        status: 400,
       } as AuthError;
     }
 
     // セッション情報をキャッシュに格納
     queryClient.setQueryData(AUTH_SESSION_KEY, {
       data: {
-        session: result.session,
-        user: result.user,
+        session: {
+          id: data.token || "",
+          userId: data.user?.id || "",
+          expiresAt: new Date(),
+          data: {},
+        } as AuthSession,
+        user: data.user as AuthUser,
       },
       error: null,
       isLoading: false,
     });
 
-    return result;
+    return {
+      success: true,
+      user: data.user as AuthUser,
+      session: {
+        id: data.token || "",
+        userId: data.user?.id || "",
+        expiresAt: new Date(),
+        data: {},
+      } as AuthSession,
+    };
   } catch (error) {
     console.error("サインイン中にエラーが発生しました", error);
     throw error;
@@ -209,40 +234,50 @@ export const signUp = async (params: {
   name: string;
 }): Promise<SignUpResponse> => {
   try {
-    const response = await fetch(`${AUTH_API_URL}/signup`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: params.email,
-        password: params.password,
-        name: params.name,
-      }),
+    const authClient = getAuthClient();
+    // Better Auth Clientの正しいAPI仕様に合わせる
+    const { data, error } = await authClient.signUp.email({
+      email: params.email,
+      password: params.password,
+      name: params.name,
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
+    if (error) {
       throw {
-        message: result.message || "登録に失敗しました",
-        code: response.status === 409 ? "auth/email-already-in-use" : "auth/sign-up-error",
-        status: response.status,
+        message: error.message || "登録に失敗しました",
+        code:
+          error.code === "auth/email-already-in-use"
+            ? "auth/email-already-in-use"
+            : "auth/sign-up-error",
+        status: 400,
       } as AuthError;
     }
 
     // セッション情報をキャッシュに格納
     queryClient.setQueryData(AUTH_SESSION_KEY, {
       data: {
-        session: result.session,
-        user: result.user,
+        session: {
+          id: data.token || "",
+          userId: data.user?.id || "",
+          expiresAt: new Date(),
+          data: {},
+        } as AuthSession,
+        user: data.user as AuthUser,
       },
       error: null,
       isLoading: false,
     });
 
-    return result;
+    return {
+      success: true,
+      user: data.user as AuthUser,
+      session: {
+        id: data.token || "",
+        userId: data.user?.id || "",
+        expiresAt: new Date(),
+        data: {},
+      } as AuthSession,
+    };
   } catch (error) {
     console.error("サインアップ中にエラーが発生しました", error);
     throw error;
@@ -259,8 +294,14 @@ export const getUser = async (): Promise<AuthUser | null> => {
     if (sessionData?.data?.user) return sessionData.data.user;
 
     // キャッシュになければ直接フェッチ
-    const session = await fetchSession();
-    return session.data?.user || null;
+    const authClient = getAuthClient();
+    const { data, error } = await authClient.getSession();
+
+    if (error || !data || !data.user) {
+      return null;
+    }
+
+    return data.user as AuthUser;
   } catch (error) {
     console.error("ユーザー情報の取得中にエラーが発生しました", error);
     return null;
@@ -272,13 +313,8 @@ export const getUser = async (): Promise<AuthUser | null> => {
  */
 export const signOut = async (): Promise<void> => {
   try {
-    await fetch(`${AUTH_API_URL}/signout`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const authClient = getAuthClient();
+    await authClient.signOut();
 
     // セッションキャッシュを無効化
     queryClient.invalidateQueries({ queryKey: AUTH_SESSION_KEY });
@@ -298,19 +334,14 @@ export const updateProfile = async (data: {
   avatar?: string;
 }): Promise<AuthUser> => {
   try {
-    const response = await fetch(`${AUTH_API_URL}/profile`, {
-      method: "PATCH",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+    const authClient = getAuthClient();
+    const { data: userData, error } = await authClient.updateUser({
+      name: data.name,
+      image: data.avatar,
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "プロフィール更新に失敗しました");
+    if (error) {
+      throw new Error(error.message || "プロフィール更新に失敗しました");
     }
 
     // セッション情報をキャッシュを更新
@@ -320,12 +351,12 @@ export const updateProfile = async (data: {
         ...sessionData,
         data: {
           ...sessionData.data,
-          user: result.user,
+          user: userData as unknown as AuthUser,
         },
       });
     }
 
-    return result.user;
+    return userData as unknown as AuthUser;
   } catch (error) {
     console.error("プロフィール更新中にエラーが発生しました", error);
     throw error;
@@ -340,22 +371,17 @@ export const changePassword = async (data: {
   newPassword: string;
 }): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${AUTH_API_URL}/change-password`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+    const authClient = getAuthClient();
+    const { error } = await authClient.changePassword({
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "パスワード変更に失敗しました");
+    if (error) {
+      throw new Error(error.message || "パスワード変更に失敗しました");
     }
 
-    return result;
+    return { success: true, message: "パスワードが正常に変更されました" };
   } catch (error) {
     console.error("パスワード変更中にエラーが発生しました", error);
     throw error;
@@ -366,8 +392,24 @@ export const changePassword = async (data: {
  * APIリクエスト用のヘッダーを取得する
  * 認証が必要なAPIリクエストで使用
  */
-export const getAuthHeaders = (): HeadersInit => {
-  return {
-    "Content-Type": "application/json",
-  };
+export const getAuthHeaders = async (): Promise<HeadersInit> => {
+  try {
+    const authClient = getAuthClient();
+    const { data } = await authClient.getSession();
+
+    if (data?.session?.id) {
+      return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${data.session.id}`,
+      };
+    }
+
+    return {
+      "Content-Type": "application/json",
+    };
+  } catch (error) {
+    return {
+      "Content-Type": "application/json",
+    };
+  }
 };

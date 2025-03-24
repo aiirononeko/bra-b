@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
-import { getPrismaClient } from "./infrastructure/prisma";
-import type { Env } from "./types";
+import { getPrismaClient } from "../prisma/client";
+import type { Env } from "../../types";
 
 /**
  * better-authの初期化関数
@@ -14,27 +14,11 @@ import type { Env } from "./types";
  * @returns better-authのインスタンス
  */
 function createBetterAuth(prisma: ReturnType<typeof getPrismaClient>, secret: string) {
-  // better-authに必要な設定を提供
   return betterAuth({
-    // 環境変数から取得したシークレットを使用
     secret,
     database: prismaAdapter(prisma, {
       provider: "sqlite",
     }),
-    emailPassword: {
-      enabled: true,
-      hash: {
-        // パスワードハッシュのセキュリティレベルを設定
-        // 高い値ほどセキュリティは高くなるが、処理時間も増加する
-        cost: 10,
-      },
-    },
-    session: {
-      freshAge: 60 * 5, // 5分 - 新しいセッションと見なされる期間
-      expiresIn: 30 * 24 * 60 * 60, // 30日 - セッションの有効期限
-      updateAge: 24 * 60 * 60, // 24時間 - セッション更新が必要になる期間
-    },
-    plugins: [],
   });
 }
 
@@ -44,9 +28,6 @@ function createBetterAuth(prisma: ReturnType<typeof getPrismaClient>, secret: st
  */
 export const auth = {
   handler: () => new Response("認証システムが初期化されていません", { status: 500 }),
-  api: {
-    getSession: (options?: unknown) => Promise.resolve(null),
-  },
 };
 
 /**

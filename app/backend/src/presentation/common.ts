@@ -6,20 +6,8 @@ import type { PrismaClient } from "@prisma/client/edge";
 
 import type { Env } from "../types";
 
-// better-authの型定義
-export type BetterAuthInstance = {
-  handler: (request: Request) => Promise<Response>;
-  api: {
-    getSession: (options: unknown) => Promise<unknown>;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-};
-
 type Variables = {
   db: PrismaClient;
-  user?: { id: string };
-  auth?: BetterAuthInstance;
   env: string;
 };
 

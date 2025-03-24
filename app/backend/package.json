@@ -8,7 +8,10 @@
     "deploy": "wrangler deploy",
     "build": "wrangler build",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",

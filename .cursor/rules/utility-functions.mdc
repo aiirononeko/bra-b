@@ -1,0 +1,26 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## ユーティリティ関数の実装規約
+
+### 1. ファイル構成
+
+- 機能ごとにファイルを分割（〇〇Utils.ts）
+- 関連する処理をグループ化
+
+### 2. 関数の実装
+
+- 純粋関数として実装し、副作用を最小限に
+- TypeScriptの型定義を厳密に行う
+- 引数と戻り値の型を明示的に定義
+- デフォルト値とnullチェックを適切に実装
+
+### 3. 命名規則
+
+- 動詞 + 目的語の形式（例：`formatDate`, `downloadBlob`）
+- 変換系: `format[Type]`, `convert[From]To[To]`
+- 取得系: `get[Property]`
+- 検証系: `validate[Subject]`, `is[Condition]`
+- ユーティリティ系: `download[Type]`, `create[Entity]`

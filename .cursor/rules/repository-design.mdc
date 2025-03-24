@@ -1,0 +1,47 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Repository設計と実装の規約
+
+### 1. ファイル構成
+
+- DBのテーブルごとにリポジトリを分割（〇〇Repository.ts）
+- TypeScriptの型定義ファイルと対応
+- 関連する型は適切な場所に配置
+
+### 2. 関数の命名規則
+
+- 取得系: `get[Entity(ies)]By[Condition]`
+- 作成系: `create[Entity]`
+- 更新系: `update[Entity]By[Condition]`
+- 削除系: `delete[Entity]By[Condition]`
+- 検索系: `search[Entity(ies)]By[Condition]`
+
+### 3. データベースクエリの実装
+
+- 適切なテーブルを指定
+- リレーション取得時は明示的に指定
+- 条件句を適切に使用
+- order句で並び順を指定
+- リレーションを含むクエリは適切に定義
+
+### 4. 戻り値の型定義
+
+```typescript
+// 単一エンティティの場合
+Promise<T | null>
+
+// 配列の場合
+Promise<T[]>
+
+// エラー時
+throw new Error('エラーメッセージ')
+```
+
+### 5. エラーハンドリング
+
+- データベースのエラーを適切にハンドリング
+- エラーメッセージは呼び出し元で制御
+- トランザクション処理の適切な管理

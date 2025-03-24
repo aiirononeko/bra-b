@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## ディレクトリ構造
+
+```
+app/
+├── backend/
+│   ├── prisma/            - Prismaの設定とマイグレーション
+│   └── src/
+│       ├── domain/        - ドメインレイヤー
+│       │   ├── entities/  - エンティティ
+│       │   ├── repositories/ - リポジトリインターフェース
+│       │   └── value-objects/ - 値オブジェクト
+│       ├── application/   - アプリケーションレイヤー
+│       │   └── usecases/  - ユースケース
+│       ├── infrastructure/ - インフラストラクチャレイヤー
+│       │   └── repositories/ - リポジトリ実装
+│       └── presentation/  - プレゼンテーションレイヤー
+│           ├── middlewares/ - ミドルウェア
+│           └── routes/    - ルーティング
+└── web/
+    └── src/
+        ├── components/    - UIコンポーネント
+        ├── hooks/         - カスタムフック
+        ├── lib/           - ユーティリティ
+        └── routes/        - ルーティングとページ
+```
+
+### バックエンド
+
+- `app/backend/src/domain/`: ドメインモデル、エンティティ、値オブジェクト
+- `app/backend/src/application/`: ユースケース、アプリケーションサービス
+- `app/backend/src/infrastructure/`: リポジトリの実装、外部サービスとのインターフェース
+- `app/backend/src/presentation/`: API定義、ルーティング、ミドルウェア
+
+### フロントエンド
+
+- `app/web/src/components/`: 再利用可能なUIコンポーネント
+- `app/web/src/hooks/`: カスタムReactフック
+- `app/web/src/lib/`: ユーティリティ関数、APIクライアント
+- `app/web/src/routes/`: ルーティングとページコンポーネント

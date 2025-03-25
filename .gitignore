@@ -1,7 +1,13 @@
-node_modules
-.env
-.turbo
-dist
-.wrangler
 .DS_Store
-coverage
+/node_modules/
+*.tsbuildinfo
+
+# React Router
+/.react-router/
+/build/
+
+# Cloudflare
+.mf
+.wrangler
+.dev.vars*
+

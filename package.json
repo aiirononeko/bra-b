@@ -1,32 +1,24 @@
 {
   "name": "bra-b",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "packageManager": "pnpm@10.6.1",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "build:frontend:web": "cd app/web && pnpm build",
-    "build:backend": "cd app/backend && pnpm build",
-    "lint": "turbo lint",
-    "lint:biome": "biome check .",
-    "format": "turbo format",
-    "format:biome": "biome format . --write",
-    "format:check": "biome format .",
-    "check": "biome check --apply .",
-    "test": "turbo test",
-    "test:backend": "cd app/backend && pnpm test",
-    "test:backend:coverage": "cd app/backend && pnpm test:coverage",
-    "deploy": "turbo deploy",
-    "deploy:frontend:web": "cd app/web && pnpm run deploy",
-    "deploy:backend": "cd app/backend && pnpm run deploy"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "15.2.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "turbo": "^2.4.4"
-  },
-  "keywords": ["react", "hono", "cloudflare", "tanstack", "monorepo"],
-  "author": "aiirononeko",
-  "license": "ISC"
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
+  }
 }

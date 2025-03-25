@@ -1,6 +1,6 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
 
 import "./globals.css";
 
@@ -16,8 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
 	title: "ブラービ",
-	description:
-		"ブラービは、バリスタ起点でコーヒーを飲みにいくような体験を提供するサービスです。",
+	description: "ブラービは、バリスタ起点でコーヒーを飲みにいくような体験を提供するサービスです。",
 };
 
 export default function RootLayout({
@@ -27,9 +26,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="ja">
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
+			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 				{children}
 				<Analytics />
 			</body>

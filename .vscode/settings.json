@@ -1,29 +1,26 @@
 {
-  "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc]": {
-    "editor.defaultFormatter": "biomejs.biome",
-    "editor.tabSize": 2
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  },
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
-  "deno.lint": true,
-  "deno.unstable": [
-    "bare-node-builtins",
-    "byonm",
-    "sloppy-imports",
-    "unsafe-proto",
-    "webgpu",
-    "broadcast-channel",
-    "worker-options",
-    "cron",
-    "kv",
-    "ffi",
-    "fs",
-    "http",
-    "net"
-  ],
-  "editor.formatOnSave": true
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "always",
+		"source.fixAll.biome": "always"
+	},
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "biomejs.biome",
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	}
 }

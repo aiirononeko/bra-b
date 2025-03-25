@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { useCallback, useEffect, useState } from "react";
 
 import { createClient } from "@/utils/supabase/client";
 
@@ -25,7 +25,6 @@ export default function AccountForm({ user }: { user: User | null }) {
 				.single();
 
 			if (error && status !== 406) {
-				console.log(error);
 				throw error;
 			}
 
@@ -35,7 +34,7 @@ export default function AccountForm({ user }: { user: User | null }) {
 				setWebsite(data.website);
 				setAvatarUrl(data.avatar_url);
 			}
-		} catch (error) {
+		} catch (_error) {
 			alert("Error loading user data!");
 		} finally {
 			setLoading(false);
@@ -69,7 +68,7 @@ export default function AccountForm({ user }: { user: User | null }) {
 			});
 			if (error) throw error;
 			alert("Profile updated!");
-		} catch (error) {
+		} catch (_error) {
 			alert("Error updating the data!");
 		} finally {
 			setLoading(false);
@@ -116,9 +115,7 @@ export default function AccountForm({ user }: { user: User | null }) {
 				<button
 					type="button"
 					className="button primary block"
-					onClick={() =>
-						updateProfile({ fullname, username, website, avatar_url })
-					}
+					onClick={() => updateProfile({ fullname, username, website, avatar_url })}
 					disabled={loading}
 				>
 					{loading ? "Loading ..." : "Update"}

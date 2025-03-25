@@ -20,41 +20,25 @@
 | ストレージ     | Supabase Storage      |
 | デプロイ       | Vercel                |
 
-## 🔨 設計方針
-
-- ドメイン駆動設計（DDD）＋ レイヤードアーキテクチャを採用
-- App Router によるサーバーコンポーネントを活用した効率的なレンダリング
-
 ## 🗃 データモデル（ER 図）
 
 ```mermaid
 erDiagram
 
-User ||--o{ Profile : has
-User ||--o{ Evaluation : evaluates
-User ||--o{ Tip : gives
-User ||--o{ Favorite : saves
-
 Profile ||--o{ Evaluation : receives
 Profile ||--o{ Tip : receives
 Profile ||--o{ Favorite : saved_by
+Profile ||--o{ Evaluation : evaluates "as user"
+Profile ||--o{ Tip : gives "as user"
+Profile ||--o{ Favorite : saves "as user"
 
 Evaluation ||--o{ EvaluationDetail : has
 EvaluationDetail }o--|| EvaluationItem : references
 EvaluationItem }o--|| EvaluationCategory : belongs_to
 
-User {
-  UUID id PK
-  string email
-  boolean email_verified
-  datetime created_at
-  datetime updated_at
-  datetime deleted_at
-}
-
 Profile {
   UUID id PK
-  UUID user_id FK
+  UUID user_id FK "references auth.users"
   string type
   string display_name
   string icon_url
@@ -62,19 +46,22 @@ Profile {
   string sns_links
   string shop_name
   datetime created_at
+  datetime updated_at
 }
 
 Evaluation {
   UUID id PK
   UUID barista_profile_id FK
-  UUID evaluator_user_id FK
+  UUID evaluator_id FK "references auth.users"
   datetime evaluated_at
+  datetime created_at
 }
 
 EvaluationDetail {
   UUID id PK
   UUID evaluation_id FK
   UUID evaluation_item_id FK
+  datetime created_at
 }
 
 EvaluationItem {
@@ -85,6 +72,7 @@ EvaluationItem {
   bool is_active
   int sort_order
   datetime created_at
+  datetime updated_at
 }
 
 EvaluationCategory {
@@ -93,24 +81,28 @@ EvaluationCategory {
   bool is_active
   int sort_order
   datetime created_at
+  datetime updated_at
 }
 
 Tip {
   UUID id PK
   UUID barista_profile_id FK
-  UUID sender_user_id FK
+  UUID sender_id FK "references auth.users"
   int amount
   datetime sent_at
   string payment_info
   string message
   string stripe_payment_intent_id
+  datetime created_at
+  datetime updated_at
 }
 
 Favorite {
   UUID id PK
-  UUID user_id FK
+  UUID user_id FK "references auth.users"
   UUID barista_profile_id FK
   datetime created_at
+  datetime updated_at
 }
 ```
 

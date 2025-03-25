@@ -112,7 +112,7 @@
 
 - DBのテーブルごとにリポジトリを分割（〇〇-repository.ts）
 - TypeScriptの型定義ファイルと対応
-- 関連する型は src/types/ に配置
+- 関連する型は app/types/ に配置
 
 ### 2. 関数の命名規則
 

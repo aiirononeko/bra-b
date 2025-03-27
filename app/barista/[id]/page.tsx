@@ -1,3 +1,4 @@
+import FavoriteButtonContainer from "@/app/components/favorite-button-container";
 import { fetchBaristaProfileById } from "@/app/repositories/profiles-repository";
 import Image from "next/image";
 import Link from "next/link";
@@ -150,12 +151,7 @@ export default async function BaristaDetailPage({ params }: Props) {
                 チップを送る
               </button>
 
-              <button
-                type="button"
-                className="w-full border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2 px-4 rounded-full transition-colors"
-              >
-                お気に入りに追加
-              </button>
+              <FavoriteButtonContainer baristaProfileId={profile.id} />
             </div>
           </div>
         </div>

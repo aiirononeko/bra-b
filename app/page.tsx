@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Link from "next/link";
 import BaristaCard from "./components/barista-card";
 import { fetchBaristaProfiles } from "./repositories/profiles-repository";
 
@@ -7,12 +7,31 @@ export default async function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">☕️ bra-B (ブラービ)</h1>
-        <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          バリスタ個人がファンを獲得し、客観的評価とチップを受け取れるサービスです。
-          あなたのお気に入りのバリスタを見つけてみましょう。
-        </p>
+      <header className="mb-8">
+        <div className="flex justify-end mb-4">
+          <div className="space-x-2">
+            <Link
+              href="/auth/login"
+              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+            >
+              ログイン
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link
+              href="/auth/register"
+              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+            >
+              新規登録
+            </Link>
+          </div>
+        </div>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-2">☕️ bra-B (ブラービ)</h1>
+          <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            バリスタ個人がファンを獲得し、客観的評価とチップを受け取れるサービスです。
+            あなたのお気に入りのバリスタを見つけてみましょう。
+          </p>
+        </div>
       </header>
 
       <main>

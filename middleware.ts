@@ -1,5 +1,6 @@
 import { updateSession } from "@/utils/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
@@ -124,7 +125,7 @@ export async function middleware(request: NextRequest) {
 }
 
 // 匿名プロファイルを作成する関数
-async function createAnonymousProfile(supabase: any, anonymousId: string) {
+async function createAnonymousProfile(supabase: SupabaseClient, anonymousId: string) {
   try {
     // 既存プロファイルの確認（冪等性を確保）
     const { data: existingProfile } = await supabase

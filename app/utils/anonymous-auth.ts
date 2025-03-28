@@ -3,9 +3,9 @@
  * Cookieベースで匿名ユーザーを管理する
  */
 
-import { createClient } from "@/utils/supabase/client";
-import { nanoid } from "nanoid";
 import { cookies } from "next/headers";
+
+import { createClient } from "@/utils/supabase/client";
 
 // Cookieのキー名
 const ANONYMOUS_ID_COOKIE = "anonymous_id";

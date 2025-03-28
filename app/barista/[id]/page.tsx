@@ -6,15 +6,12 @@ import { notFound } from "next/navigation";
 
 // バリスタ詳細ページのパラメータの型定義
 type Props = {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 };
 
 export default async function BaristaDetailPage({ params }: Props) {
   // Next.js App Routerではparamsをawaitする必要がある
-  const resolvedParams = await Promise.resolve(params);
-  const id = resolvedParams.id;
+  const { id } = await params;
 
   const { data: profile, error } = await fetchBaristaProfileById(id);
 

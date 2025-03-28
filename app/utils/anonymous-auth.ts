@@ -1,43 +1,59 @@
 /**
  * 匿名認証機能の実装
- * Supabaseの認証機能を使用して、匿名ユーザーを管理する
+ * Cookieベースで匿名ユーザーを管理する
  */
 
 import { createClient } from "@/utils/supabase/client";
 import { nanoid } from "nanoid";
+import { cookies } from "next/headers";
 
-// ローカルストレージのキー名
-const ANONYMOUS_ID_KEY = "bra-b-anonymous-id";
+// Cookieのキー名
+const ANONYMOUS_ID_COOKIE = "anonymous_id";
 
 /**
- * 匿名ユーザーIDを取得または生成する
+ * Cookieから匿名ユーザーIDを取得する（サーバーサイド用）
  * @returns 匿名ユーザーID
  */
-export async function getOrCreateAnonymousId(): Promise<string> {
-  // クライアントサイドのみで実行
-  if (typeof window === "undefined") {
-    return "";
+export async function getAnonymousIdFromCookie(): Promise<string | undefined> {
+  try {
+    const cookiesList = await cookies();
+    const anonymousId = cookiesList.get(ANONYMOUS_ID_COOKIE)?.value;
+    return anonymousId;
+  } catch (error) {
+    console.error("Cookieの取得に失敗しました:", error);
+    return undefined;
   }
-
-  // ローカルストレージから匿名IDを取得
-  let anonymousId = localStorage.getItem(ANONYMOUS_ID_KEY) || "";
-
-  // 既存のIDがない場合は生成して保存
-  if (!anonymousId) {
-    anonymousId = nanoid(16);
-    localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
-  }
-
-  return anonymousId;
 }
 
 /**
- * 匿名ユーザーの情報をSupabaseに同期する
+ * クライアントサイドで匿名ユーザーIDを取得する
  * @returns 匿名ユーザーID
  */
-export async function syncAnonymousUser(): Promise<string> {
-  const anonymousId = await getOrCreateAnonymousId();
-  if (!anonymousId) return "";
+export function getAnonymousIdFromClient(): string | undefined {
+  // クライアントサイドのみで実行
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  // DocumentCookieから匿名IDを取得
+  const cookies = document.cookie.split(";");
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith(`${ANONYMOUS_ID_COOKIE}=`)) {
+      return cookie.substring(ANONYMOUS_ID_COOKIE.length + 1);
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * 匿名ユーザーの情報をSupabaseに同期する（クライアントサイド用）
+ * @returns 匿名ユーザーID
+ */
+export async function syncAnonymousUser(): Promise<string | undefined> {
+  const anonymousId = getAnonymousIdFromClient();
+  if (!anonymousId) return undefined;
 
   const supabase = createClient();
 
@@ -68,43 +84,36 @@ export async function syncAnonymousUser(): Promise<string> {
 }
 
 /**
- * 匿名ユーザーの情報をプロフィールテーブルに登録する
- * @returns 匿名ユーザーID
+ * 匿名ユーザープロファイルを取得する（クライアントサイド用）
+ * @returns 匿名ユーザープロファイル
  */
-export async function registerAnonymousProfile(): Promise<string> {
-  const anonymousId = await syncAnonymousUser();
-  if (!anonymousId) return "";
+export async function getAnonymousProfile() {
+  const anonymousId = getAnonymousIdFromClient();
+  if (!anonymousId) return null;
 
   const supabase = createClient();
 
-  // 既存の匿名プロフィールを確認
-  const { data: existingProfile } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .select("id")
-    .eq("anonymous_id", anonymousId)
-    .maybeSingle();
+    .select("*")
+    .eq("id", anonymousId)
+    .eq("type", "anonymous")
+    .single();
 
-  // 既に登録済みの場合は終了
-  if (existingProfile) {
-    return anonymousId;
+  if (error || !data) {
+    console.error("匿名プロファイル取得エラー:", error);
+    return null;
   }
 
-  // プロフィールを作成
-  await supabase.from("profiles").insert({
-    anonymous_id: anonymousId,
-    type: "customer",
-    display_name: `匿名ユーザー${anonymousId.substring(0, 4)}`,
-  });
-
-  return anonymousId;
+  return data;
 }
 
 /**
- * サインアップ/ログイン時に匿名IDを引き継ぐ
+ * サインアップ/ログイン時に匿名IDを引き継ぐ（クライアントサイド用）
  * @param userId 認証済みユーザーID
  */
 export async function migrateAnonymousData(userId: string): Promise<void> {
-  const anonymousId = await getOrCreateAnonymousId();
+  const anonymousId = getAnonymousIdFromClient();
   if (!anonymousId) return;
 
   const supabase = createClient();
@@ -113,7 +122,8 @@ export async function migrateAnonymousData(userId: string): Promise<void> {
   const { data: anonymousProfile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("anonymous_id", anonymousId)
+    .eq("id", anonymousId)
+    .eq("type", "anonymous")
     .maybeSingle();
 
   // 匿名プロフィールが存在しない場合は終了
@@ -126,19 +136,40 @@ export async function migrateAnonymousData(userId: string): Promise<void> {
     .eq("user_id", userId)
     .maybeSingle();
 
-  // 認証済みユーザーのプロフィールが存在しない場合は新規作成
-  if (authProfile) {
-    // 既存のプロフィールに匿名IDを関連付け
-    await supabase.from("profiles").update({ anonymous_id: anonymousId }).eq("user_id", userId);
-  } else {
+  // ユーザープロファイルがない場合は作成、ある場合は更新
+  if (!authProfile) {
+    // 匿名プロファイルデータを活用して新規プロファイル作成
     await supabase.from("profiles").insert({
       user_id: userId,
       type: "customer",
-      display_name: `ユーザー${userId.substring(0, 4)}`,
-      anonymous_id: anonymousId,
+      display_name: anonymousProfile.display_name.replace("匿名ユーザー", "ユーザー"),
+      icon_url: anonymousProfile.icon_url || "",
+      bio: anonymousProfile.bio || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
   }
 
-  // TODO: 必要に応じて、評価やお気に入りなどのデータを移行
-  // (データ移行ロジックはテーブル設計に応じて実装)
+  // TODO: 必要に応じて、お気に入りや閲覧履歴などのデータを移行
+  // 例: お気に入りデータを移行
+  const { data: favorites } = await supabase
+    .from("favorites")
+    .select("*")
+    .eq("profile_id", anonymousId);
+
+  if (favorites && favorites.length > 0) {
+    // お気に入りデータを新しいユーザーIDに関連付けて保存
+    const newFavorites = favorites.map((fav) => ({
+      ...fav,
+      id: undefined, // 新しいIDが自動生成されるように
+      profile_id: authProfile?.id || null, // 認証済みプロファイルIDを使用
+      user_id: userId,
+      anonymous_id: null,
+    }));
+
+    await supabase.from("favorites").insert(newFavorites);
+  }
+
+  // Cookieから匿名IDを削除（認証済みユーザーになったため）
+  document.cookie = `${ANONYMOUS_ID_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }

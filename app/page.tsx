@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import BaristaCard from "./components/barista-card";
 import { fetchBaristaProfiles } from "./repositories/profiles-repository";
 

@@ -2,35 +2,33 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  // 新しいレスポンスオブジェクトを作成
+  const response = NextResponse.next();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      {
+        cookies: {
+          getAll: () => {
+            return request.cookies.getAll();
+          },
+          setAll: (cookies) => {
+            for (const cookie of cookies) {
+              response.cookies.set(cookie);
+            }
+          },
         },
-        setAll(cookiesToSet) {
-          for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value);
-          }
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          for (const { name, value, options } of cookiesToSet) {
-            supabaseResponse.cookies.set(name, value, options);
-          }
-        },
-      },
-    }
-  );
+      }
+    );
 
-  // refreshing the auth token
-  await supabase.auth.getUser();
+    // 認証トークンのリフレッシュ
+    await supabase.auth.getSession();
 
-  return supabaseResponse;
+    return response;
+  } catch (error) {
+    console.error("updateSession エラー:", error);
+    return response;
+  }
 }

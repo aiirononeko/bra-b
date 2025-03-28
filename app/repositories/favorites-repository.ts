@@ -1,7 +1,6 @@
 /**
  * お気に入り関連のリポジトリ
  */
-import { getOrCreateAnonymousId } from "@/app/utils/anonymous-auth";
 import { createClient } from "@/utils/supabase/server";
 
 /**
@@ -135,11 +134,16 @@ export async function toggleFavorite(baristaProfileId: string, anonymousId?: str
     };
   }
 
-  // 新規お気に入り登録
+  // 普通のinsertに戻して、エラーハンドリングで対応
   const { error: insertError } = await supabase.from("favorites").insert({
     barista_profile_id: baristaProfileId,
     ...userIdentifier,
   });
+
+  // エラーが制約違反の場合は成功として処理（既に存在するため）
+  if (insertError && (insertError.code === "23505" || insertError.code === "42P10")) {
+    return { data: { action: "add" }, error: null };
+  }
 
   if (insertError) {
     console.error("お気に入り登録に失敗しました:", insertError);

@@ -1,10 +1,10 @@
 "use client";
 
-import { createClient } from "@/utils/supabase/client";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,7 +12,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
   const router = useRouter();
+
   const supabase = createClient();
 
   const handleLoginWithPassword = async (event: React.FormEvent) => {

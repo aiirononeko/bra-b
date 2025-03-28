@@ -21,7 +21,19 @@ export default function FavoriteButton({
   useEffect(() => {
     const fetchFavoriteStatus = async () => {
       try {
-        const response = await fetch(`/api/favorites?baristaProfileId=${baristaProfileId}`);
+        // キャッシュを回避するためのタイムスタンプを追加
+        const timestamp = new Date().getTime();
+        const response = await fetch(
+          `/api/favorites?baristaProfileId=${baristaProfileId}&_=${timestamp}`,
+          {
+            // キャッシュを無効化
+            cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              Pragma: "no-cache",
+            },
+          }
+        );
         const data = await response.json();
 
         if (response.ok) {

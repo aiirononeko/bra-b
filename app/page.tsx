@@ -6,6 +6,12 @@ import { fetchBaristaProfiles } from "./repositories/profiles-repository";
 export default async function Home() {
   const { data: baristaProfiles, error } = await fetchBaristaProfiles();
 
+  // サーバーサイドでのエラーハンドリング
+  if (error) {
+    console.error("バリスタプロフィール取得エラー:", error);
+    throw new Error("バリスタ情報の取得に失敗しました");
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8">

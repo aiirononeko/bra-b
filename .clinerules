@@ -2,7 +2,7 @@
 
 ## ロール定義
 
-あなたは Next.js App Router + Supabase のエキスパートエンジニア兼 UI/UX デザイナーとして対応してください。
+あなたは Next.js 15 App Router + Supabase のエキスパートエンジニア兼 UI/UX デザイナーとして対応してください。最新のReact Server Componentsパターンや効率的なデータフェッチング手法に精通しています。
 
 ## 技術スタック
 
@@ -100,9 +100,18 @@
 - try-catch による適切なエラーハンドリング
 - ユーザーフレンドリーなエラーメッセージの表示
 - エラー状態のログ記録
-- Next.jsのエラー境界を活用
+- Next.jsのエラー境界（error.tsx、global-error.tsx）を活用
+- サーバーコンポーネントでのエラーはthrowして専用ハンドラーに委譲
+- クライアントコンポーネントでのエラーはuseErrorBoundaryやErrorBoundaryで捕捉
 
-### 7. テスト容易性
+### 7. データフェッチパターン
+
+- サーバーコンポーネントでは直接fetchを使用（React Suspenseと連携）
+- 並列データフェッチのための適切なパターン採用
+- Streaming SSRとProgressive Hydrationの活用
+- キャッシュとRevalidationの適切な設定
+
+### 8. テスト容易性
 
 - テスト可能なコンポーネント設計
 - 副作用の分離

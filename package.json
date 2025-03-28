@@ -9,7 +9,10 @@
     "lint": "next lint",
     "fmt": "biome format --write .",
     "lint:biome": "biome lint .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "types:check": "tsc --noEmit",
+    "test": "echo \"No tests available\"",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -23,6 +26,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@next/bundle-analyzer": "^15.2.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

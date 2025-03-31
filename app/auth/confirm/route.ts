@@ -7,9 +7,6 @@ import { createClient } from "@/utils/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  // リクエストパラメータをデバッグ
-  console.log("Auth confirm params:", Object.fromEntries(searchParams.entries()));
-
   // OTP検証に必要なパラメータの取得
   const token_hash = searchParams.get("token_hash");
   // Supabaseでは、codeまたはtokenという名前でパラメータが送信される場合がある
@@ -31,17 +28,13 @@ export async function GET(request: NextRequest) {
   try {
     // token_hashがある場合はその検証を試みる
     if (token_hash && type) {
-      console.log("Verifying OTP with token_hash");
       verifyResult = await verifyOtp(type, token_hash);
-      console.log("OTP verification result:", verifyResult);
     }
     // codeがある場合はセッションの検証を試みる
     else if (code) {
-      console.log("Exchanging code for session");
       verifyResult = await exchangeCodeForSession(code);
-      console.log("Code exchange result:", verifyResult);
     } else {
-      console.log("No valid verification parameters found");
+      console.error("No valid verification parameters found");
     }
   } catch (error) {
     console.error("Error during verification:", error);

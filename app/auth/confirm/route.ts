@@ -1,17 +1,23 @@
-import { exchangeCodeForSession, verifyOtp } from "@/app/actions/auth";
 import { type NextRequest, NextResponse } from "next/server";
+
+import { exchangeCodeForSession, verifyOtp } from "@/app/actions/auth";
+import { createClient } from "@/utils/supabase/server";
 
 // Creating a handler to a GET request to route /auth/confirm
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
+  // リクエストパラメータをデバッグ
+  console.log("Auth confirm params:", Object.fromEntries(searchParams.entries()));
+
   // OTP検証に必要なパラメータの取得
   const token_hash = searchParams.get("token_hash");
-  const code = searchParams.get("code"); // メールリンクから送られてくるcodeパラメータも対応
+  // Supabaseでは、codeまたはtokenという名前でパラメータが送信される場合がある
+  const code = searchParams.get("code") || searchParams.get("token");
   const type = searchParams.get("type") || "email";
 
   // リダイレクト先を設定（不正な場合はerrorに進む）
-  const next = searchParams.get("next") || "/";
+  const next = searchParams.get("next") || "/account";
 
   // Create redirect link without the secret token
   const redirectTo = request.nextUrl.clone();
@@ -22,22 +28,52 @@ export async function GET(request: NextRequest) {
 
   let verifyResult = { success: false };
 
-  // token_hashがある場合はその検証を試みる
-  if (token_hash && type) {
-    verifyResult = await verifyOtp(type, token_hash);
-  }
-  // codeがある場合はセッションの検証を試みる
-  else if (code) {
-    verifyResult = await exchangeCodeForSession(code);
+  try {
+    // token_hashがある場合はその検証を試みる
+    if (token_hash && type) {
+      console.log("Verifying OTP with token_hash");
+      verifyResult = await verifyOtp(type, token_hash);
+      console.log("OTP verification result:", verifyResult);
+    }
+    // codeがある場合はセッションの検証を試みる
+    else if (code) {
+      console.log("Exchanging code for session");
+      verifyResult = await exchangeCodeForSession(code);
+      console.log("Code exchange result:", verifyResult);
+    } else {
+      console.log("No valid verification parameters found");
+    }
+  } catch (error) {
+    console.error("Error during verification:", error);
   }
 
-  // 検証が成功した場合はリダイレクト先へ
+  // 検証が成功した場合
   if (verifyResult.success) {
-    redirectTo.searchParams.delete("next");
-    // 成功メッセージをリダイレクト先に追加
-    redirectTo.searchParams.set("auth_success", "true");
-    redirectTo.searchParams.set("message", "認証に成功しました。ログインしました。");
-    return NextResponse.redirect(redirectTo);
+    // ユーザータイプを取得
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // リダイレクト先をアカウントページに設定
+    const accountRedirect = request.nextUrl.clone();
+    accountRedirect.pathname = "/account";
+
+    // ユーザータイプがバリスタの場合はバリスタページへ
+    if (user?.user_metadata?.user_type === "barista") {
+      // バリスタページにリダイレクト（バリスタIDがあれば使用）
+      if (user.id) {
+        accountRedirect.pathname = `/barista/${user.id}`;
+      } else {
+        accountRedirect.pathname = "/account";
+      }
+    }
+
+    // 成功メッセージを追加
+    accountRedirect.searchParams.set("auth_success", "true");
+    accountRedirect.searchParams.set("message", "認証に成功しました。ログインしました。");
+
+    return NextResponse.redirect(accountRedirect);
   }
 
   // return the user to an error page with some instructions

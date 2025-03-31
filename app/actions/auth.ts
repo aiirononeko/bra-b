@@ -1,5 +1,6 @@
 "use server";
 
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -39,7 +40,7 @@ export async function signInWithMagicLink(formData: {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || ""}/auth/confirm?next=${redirectPath}`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555"}/auth/confirm?next=${redirectPath}`,
         data: {
           user_type: userType,
           display_name: displayName || email.split("@")[0],
@@ -83,7 +84,7 @@ export async function signInWithGoogle(formData: {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || ""}/auth/confirm?next=${redirectPath}`,
+        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555"}/auth/confirm?next=${redirectPath}`,
         queryParams: {
           user_type: userType,
           display_name: displayName,
@@ -182,7 +183,7 @@ export async function migrateAnonymousUserData(anonymousId: string, userId: stri
 export async function verifyOtp(type: string, token_hash: string) {
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({
-    type: type as any,
+    type: type as EmailOtpType,
     token_hash,
   });
 

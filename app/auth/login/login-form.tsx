@@ -2,13 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { signInWithGoogle, signInWithMagicLink } from "@/app/actions/auth";
 import { type LoginFormValues, loginSchema } from "@/app/lib/schemas/auth-schemas";
-import { getAnonymousIdFromClient } from "@/app/utils/anonymous-auth/client";
 
 interface LoginFormProps {
   initialMessage?: string | null;
@@ -18,18 +16,6 @@ export function LoginForm({ initialMessage }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(initialMessage || null);
-
-  // コンポーネントマウント時に匿名IDを取得
-  useEffect(() => {
-    const fetchAnonymousId = async () => {
-      const id = getAnonymousIdFromClient();
-      if (id) {
-        console.log("匿名ID取得:", id);
-      }
-    };
-
-    fetchAnonymousId();
-  }, []);
 
   // initialMessageが変更された場合に表示を更新
   useEffect(() => {

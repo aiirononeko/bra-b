@@ -1,12 +1,18 @@
 import Link from "next/link";
 
+import { getCurrentUser, signOut } from "./actions/auth";
 import BaristaCard from "./components/barista-card";
 import { fetchBaristaProfiles } from "./repositories/profiles-repository";
 
 export default async function Home({
   searchParams,
-}: { searchParams: { auth_success?: string; message?: string } }) {
+}: {
+  searchParams:
+    | Promise<{ auth_success?: string; message?: string }>
+    | { auth_success?: string; message?: string };
+}) {
   const { data: baristaProfiles, error } = await fetchBaristaProfiles();
+  const user = await getCurrentUser();
 
   // サーバーサイドでのエラーハンドリング
   if (error) {
@@ -14,9 +20,12 @@ export default async function Home({
     throw new Error("バリスタ情報の取得に失敗しました");
   }
 
+  // searchParamsをawaitして使用
+  const params = await searchParams;
+
   // auth_successパラメータの確認
-  const authSuccess = searchParams.auth_success === "true";
-  const message = searchParams.message;
+  const authSuccess = params.auth_success === "true";
+  const message = params.message;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -28,19 +37,41 @@ export default async function Home({
       <header className="mb-8">
         <div className="flex justify-end mb-4">
           <div className="space-x-2">
-            <Link
-              href="/auth/login"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-            >
-              ログイン
-            </Link>
-            <span className="text-gray-400">|</span>
-            <Link
-              href="/auth/register"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-            >
-              新規登録
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/account"
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                >
+                  マイページ
+                </Link>
+                <span className="text-gray-400">|</span>
+                <form action={signOut} className="inline">
+                  <button
+                    type="submit"
+                    className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                  >
+                    ログアウト
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                >
+                  ログイン
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link
+                  href="/auth/register"
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                >
+                  新規登録
+                </Link>
+              </>
+            )}
           </div>
         </div>
         <div className="text-center">

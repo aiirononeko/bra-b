@@ -2,13 +2,41 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { Profile } from "../repositories/profiles-repository";
+
+import type { BaristaProfile } from "../repositories/profiles-repository";
 
 type BaristaCardProps = {
-  profile: Profile;
+  profile: BaristaProfile;
 };
 
 export default function BaristaCard({ profile }: BaristaCardProps) {
+  // メインのカテゴリを取得（confidenceスコアが最も高いもの）
+  const mainCategory = Array.isArray(profile.barista_categories)
+    ? profile.barista_categories.sort((a, b) => b.confidence_score - a.confidence_score)[0]
+    : profile.barista_categories;
+
+  // カテゴリ名を日本語に変換
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      friendly: "フレンドリー",
+      delicious: "美味しい一杯",
+      sophisticated: "洗練された接客",
+      entertainer: "エンターテイナー",
+    };
+    return labels[category] || category;
+  };
+
+  // カテゴリカラーを取得
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      friendly: "bg-yellow-100 text-yellow-800",
+      delicious: "bg-green-100 text-green-800",
+      sophisticated: "bg-purple-100 text-purple-800",
+      entertainer: "bg-blue-100 text-blue-800",
+    };
+    return colors[category] || "bg-gray-100 text-gray-800";
+  };
+
   return (
     <Link href={`/barista/${profile.id}`}>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
@@ -53,9 +81,20 @@ export default function BaristaCard({ profile }: BaristaCardProps) {
               )}
               {profile.sns_links?.twitter && <span className="text-blue-400 text-sm">Twitter</span>}
             </div>
-            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-              バリスタ
-            </span>
+            <div className="flex space-x-2">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                バリスタ
+              </span>
+              {mainCategory && (
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getCategoryColor(
+                    mainCategory.category
+                  )}`}
+                >
+                  {getCategoryLabel(mainCategory.category)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

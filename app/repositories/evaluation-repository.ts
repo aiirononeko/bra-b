@@ -59,7 +59,19 @@ export async function createEvaluation(evaluationData: EvaluationData) {
     .from("evaluation_details")
     .insert(evaluationDetailsData);
 
-  return { data: evaluation, error: detailsError };
+  if (detailsError) {
+    return { data: evaluation, error: detailsError };
+  }
+
+  // Edge Functionを呼び出してバリスタカテゴリを更新
+  try {
+    await updateBaristaCategory(evaluationData.barista_profile_id, "INSERT");
+  } catch (error) {
+    console.error("バリスタカテゴリ更新エラー:", error);
+    // カテゴリ更新に失敗しても評価登録自体は成功させる
+  }
+
+  return { data: evaluation, error: null };
 }
 
 /**
@@ -85,4 +97,22 @@ export async function fetchBaristaEvaluations(baristaProfileId: string) {
     )
     .eq("barista_profile_id", baristaProfileId)
     .order("evaluated_at", { ascending: false });
+}
+
+/**
+ * Edge Functionを使ってバリスタカテゴリを更新する
+ */
+export async function updateBaristaCategory(
+  baristaId: string,
+  eventType: "INSERT" | "UPDATE" | "DELETE" = "UPDATE"
+) {
+  const supabase = await createClient();
+
+  return supabase.functions.invoke("update-barista-category", {
+    method: "POST",
+    body: {
+      barista_id: baristaId,
+      event_type: eventType,
+    },
+  });
 }

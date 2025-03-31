@@ -12,15 +12,16 @@ bra-B (ブラービ)
 
 ## 🗂 技術スタック・アーキテクチャ
 
-| 項目           | 技術選定              |
-| -------------- | --------------------- |
-| フレームワーク | Next.js (App Router)  |
-| バックエンド   | API Routes (Next.js)  |
-| フロントエンド | React                 |
-| データベース   | Supabase (PostgreSQL) |
-| 認証           | Supabase Auth         |
-| ストレージ     | Supabase Storage      |
-| デプロイ       | Vercel                |
+| 項目           | 技術選定                         |
+| -------------- | -------------------------------- |
+| フレームワーク | Next.js (App Router)             |
+| バックエンド   | API Routes (Next.js)             |
+| フロントエンド | React                            |
+| データベース   | Supabase (PostgreSQL)            |
+| 認証           | Supabase Auth                    |
+| ストレージ     | Supabase Storage                 |
+| サーバーレス関数 | Supabase Edge Functions (Deno)   |
+| デプロイ       | Vercel                           |
 
 ## 🗃 データモデル（ER 図）
 
@@ -33,6 +34,7 @@ Profile ||--o{ Favorite : saved_by
 Profile ||--o{ Evaluation : evaluates "as user"
 Profile ||--o{ Tip : gives "as user"
 Profile ||--o{ Favorite : saves "as user"
+Profile ||--o{ BaristaCategory : categorized_as
 
 Evaluation ||--o{ EvaluationDetail : has
 EvaluationDetail }o--|| EvaluationItem : references
@@ -71,6 +73,19 @@ EvaluationItem {
   string name
   bool is_active
   int sort_order
+  datetime created_at
+  datetime updated_at
+}
+
+BaristaCategory {
+  UUID barista_profile_id PK, FK "references profiles.id"
+  string category "friendly, delicious, sophisticated, entertainer"
+  float confidence_score "信頼度スコア (0-1)"
+  float friendly_score
+  float delicious_score
+  float sophisticated_score
+  float entertainer_score
+  datetime calculated_at
   datetime created_at
   datetime updated_at
 }
@@ -114,18 +129,38 @@ Favorite {
 
 | 評価項目                  | 関連するカテゴリ        |
 |--------------------------|------------------------|
-| 笑顔が素敵                | 親しみやすい            |
-| 会話が心地よい            | 親しみやすい            |
-| 気遣いがある              | 親しみやすい            |
+| 笑顔が素敵                | フレンドリー            |
+| 話しやすい                | フレンドリー            |
+| 親身になってくれる         | フレンドリー            |
+| 常連を覚えている           | フレンドリー            |
+| 明るい                   | フレンドリー            |
 | コーヒーの知識が豊富      | 美味しい一杯を届ける     |
+| 味が素晴らしい            | 美味しい一杯を届ける     |
+| 豆の説明が的確            | 美味しい一杯を届ける     |
+| 淹れ方が丁寧              | 美味しい一杯を届ける     |
 | ラテアートが美しい        | 美味しい一杯を届ける     |
-| コーヒーの味が美味しい    | 美味しい一杯を届ける     |
-| ドリンクの品質が安定している | 美味しい一杯を届ける  |
-| 提供がスピーディー        | 洗練されたサービス      |
-| 所作が美しい              | 洗練されたサービス      |
-| ユーモアがある            | エンターテイナー        |
-| ウェルカム精神がある      | エンターテイナー        |
-| おすすめが的確            | エンターテイナー        |
+| 身だしなみが清潔          | 洗練されたサービス      |
+| 丁寧な接客                | 洗練されたサービス      |
+| 店内の清潔さ              | 洗練されたサービス      |
+| テキパキした動き          | 洗練されたサービス      |
+| 声が聞き取りやすい        | 洗練されたサービス      |
+| 話が面白い                | エンターテイナー        |
+| 個性的                   | エンターテイナー        |
+| コーヒーへの熱意がある     | エンターテイナー        |
+| 記憶に残る体験            | エンターテイナー        |
+| SNSが魅力的               | エンターテイナー        |
+
+### 🧮 カテゴリ計算ロジック
+
+バリスタのカテゴリは、Supabase Edge Functionによって自動計算されます。計算ロジックの概要：
+
+1. ユーザーからの評価項目選択データを収集
+2. 各カテゴリに関連する評価項目の出現頻度を集計
+3. 評価数を考慮して正規化されたスコアを各カテゴリに割り当て
+4. 最も高いスコアのカテゴリをバリスタのメインカテゴリとして設定
+5. 信頼度スコア（confidence_score）は、トップカテゴリのスコアと他のカテゴリのスコア比較から算出
+
+バリスタのスコアは、プロフィールページで視覚的に表示され、カテゴリごとの強みが一目でわかるようになっています。
 
 ## 🔑 認証
 
@@ -242,6 +277,71 @@ export async function migrateAnonymousFavorites(userId: string, anonymousId: str
 ## 📦 データストレージ
 
 - Supabase Storage を使用してユーザープロフィール画像などを管理
+
+## 📡 Supabase Edge Functions
+
+ブラービでは、バリスタの評価カテゴリ計算にSupabase Edge Functions（Deno）を使用しています。これにより、複雑な計算ロジックをTypeScriptで実装し、柔軟に調整できます。
+
+### 📋 バリスタカテゴリ計算
+
+バリスタプロフィールに表示されるカテゴリ（フレンドリー、美味しい一杯を届ける、洗練されたサービス、エンターテイナー）は、ユーザーからの評価に基づき自動計算されます。計算ロジックはSupabase Edge Function `update-barista-category`で実装されています。
+
+#### Edge Functionの構造
+
+```
+supabase/
+  └── functions/
+      └── update-barista-category/
+          ├── index.ts       # メイン実装
+          └── deno.json      # Deno設定
+```
+
+#### 主要機能
+
+- 評価データに基づき、各カテゴリのスコアを計算
+- 最も高いスコアのカテゴリをバリスタのメインカテゴリとして設定
+- 各カテゴリの詳細スコアも保存し、プロフィールページに表示
+
+#### 呼び出しタイミング
+
+- 新しい評価が追加されたとき
+- 評価が更新されたとき
+- 管理者が手動で再計算を要求したとき
+
+### 🛠️ Edge Functionsの開発・デプロイ方法
+
+#### ローカル開発環境での実行
+
+```bash
+# Supabase CLI で Functions を起動
+pnpm supabase functions serve
+
+# 別ターミナルでテスト（例）
+curl -i --location --request POST 'http://localhost:54321/functions/v1/update-barista-category' \
+  --header 'Authorization: Bearer YOUR-ANON-KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"barista_id": "BARISTA-UUID"}'
+```
+
+#### デプロイ方法
+
+```bash
+# 全ての関数をデプロイ
+pnpm supabase functions deploy
+
+# 特定の関数のみデプロイ
+pnpm supabase functions deploy update-barista-category
+```
+
+#### デバッグ方法
+
+```bash
+# デバッグ情報を表示
+pnpm supabase functions deploy update-barista-category --debug
+
+# ログを確認
+pnpm supabase functions logs update-barista-category
+```
 
 ## セットアップ
 

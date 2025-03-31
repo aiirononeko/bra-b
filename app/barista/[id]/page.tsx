@@ -1,5 +1,7 @@
 import FavoriteButtonContainer from "@/app/components/favorite-button-container";
+import RecalculateCategoryButton from "@/app/components/recalculate-category-button";
 import { fetchBaristaProfileById } from "@/app/repositories/profiles-repository";
+import type { BaristaProfile } from "@/app/repositories/profiles-repository";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +10,38 @@ import { notFound } from "next/navigation";
 type Props = {
   params: Promise<{ id: string }>;
   searchParams: { auth_success?: string; message?: string };
+};
+
+// カテゴリの型定義
+type BaristaCategory = {
+  category: string;
+  confidence_score: number;
+  friendly_score: number;
+  delicious_score: number;
+  sophisticated_score: number;
+  entertainer_score: number;
+};
+
+// カテゴリ名を日本語に変換する関数
+const getCategoryLabel = (category: string) => {
+  const labels: Record<string, string> = {
+    friendly: "フレンドリー",
+    delicious: "美味しい一杯",
+    sophisticated: "洗練された接客",
+    entertainer: "エンターテイナー",
+  };
+  return labels[category] || category;
+};
+
+// カテゴリカラーを取得する関数
+const getCategoryColor = (category: string) => {
+  const colors: Record<string, string> = {
+    friendly: "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200",
+    delicious: "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200",
+    sophisticated: "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200",
+    entertainer: "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200",
+  };
+  return colors[category] || "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
 };
 
 export default async function BaristaDetailPage({ params, searchParams }: Props) {
@@ -24,6 +58,15 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
   // auth_successパラメータの確認
   const authSuccess = searchParams.auth_success === "true";
   const message = searchParams.message;
+
+  // バリスタカテゴリ情報（信頼度が高い順に並べ替え）
+  const categories = Array.isArray(profile.barista_categories)
+    ? profile.barista_categories.sort(
+        (a: BaristaCategory, b: BaristaCategory) => b.confidence_score - a.confidence_score
+      )
+    : profile.barista_categories
+      ? [profile.barista_categories]
+      : [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -91,6 +134,26 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
             <div className="p-6">
               <h1 className="text-2xl font-bold mb-2">{profile.display_name}</h1>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{profile.shop_name}</p>
+
+              {/* バリスタカテゴリ表示 */}
+              {categories.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {categories.map((category: BaristaCategory) => (
+                      <span
+                        key={category.category}
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getCategoryColor(
+                          category.category
+                        )}`}
+                      >
+                        {getCategoryLabel(category.category)}
+                      </span>
+                    ))}
+                  </div>
+                  {/* 管理者のみに表示する場合はここで条件分岐 */}
+                  <RecalculateCategoryButton baristaId={profile.id} />
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2 mb-4">
                 {profile.sns_links?.instagram && (
@@ -166,6 +229,107 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
 
         {/* バリスタ評価情報 */}
         <div className="md:col-span-2">
+          {/* カテゴリ詳細とスコア */}
+          {categories.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-xl font-bold mb-4">バリスタスキル分析</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {categories.map((category: BaristaCategory) => (
+                  <div
+                    key={category.category}
+                    className={`rounded-lg p-4 ${getCategoryColor(category.category)}`}
+                  >
+                    <h3 className="text-lg font-medium mb-2">
+                      {getCategoryLabel(category.category)}
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm font-medium">信頼度</span>
+                          <span className="text-sm font-medium">
+                            {Math.round(category.confidence_score * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                          <div
+                            className="bg-blue-600 h-2.5 rounded-full"
+                            style={{ width: `${Math.round(category.confidence_score * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs">フレンドリー</span>
+                            <span className="text-xs">
+                              {Math.round(category.friendly_score * 10) / 10}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="bg-yellow-500 h-1.5 rounded-full"
+                              style={{ width: `${Math.min(category.friendly_score * 20, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs">美味しい一杯</span>
+                            <span className="text-xs">
+                              {Math.round(category.delicious_score * 10) / 10}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="bg-green-500 h-1.5 rounded-full"
+                              style={{ width: `${Math.min(category.delicious_score * 20, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs">洗練された接客</span>
+                            <span className="text-xs">
+                              {Math.round(category.sophisticated_score * 10) / 10}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="bg-purple-500 h-1.5 rounded-full"
+                              style={{
+                                width: `${Math.min(category.sophisticated_score * 20, 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-xs">エンターテイナー</span>
+                            <span className="text-xs">
+                              {Math.round(category.entertainer_score * 10) / 10}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full"
+                              style={{
+                                width: `${Math.min(category.entertainer_score * 20, 100)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">評価</h2>

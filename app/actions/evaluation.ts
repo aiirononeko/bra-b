@@ -1,7 +1,10 @@
 "use server";
 
 import { type EvaluationFormData, evaluationSchema } from "@/app/lib/schemas/evaluation-schemas";
-import { createEvaluation as createEvaluationRepo } from "@/app/repositories/evaluation-repository";
+import {
+  createEvaluation as createEvaluationRepo,
+  updateBaristaCategory,
+} from "@/app/repositories/evaluation-repository";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -38,6 +41,14 @@ export async function createEvaluation(data: EvaluationFormData) {
       return { error: "評価の保存中にエラーが発生しました" };
     }
 
+    // バリスタカテゴリを更新（エッジファンクション経由）
+    try {
+      await updateBaristaCategory(validatedData.baristaId, "INSERT");
+    } catch (error) {
+      console.error("バリスタカテゴリ更新中にエラーが発生しました:", error);
+      // カテゴリ更新に失敗しても評価自体は成功としてユーザーに返す
+    }
+
     // 成功した場合は、バリスタのプロフィールページとマイページを再検証
     revalidatePath(`/barista/${validatedData.baristaId}`);
     revalidatePath("/account");
@@ -46,5 +57,28 @@ export async function createEvaluation(data: EvaluationFormData) {
   } catch (error) {
     console.error("評価作成中にエラーが発生しました:", error);
     return { error: "評価作成中にエラーが発生しました" };
+  }
+}
+
+/**
+ * バリスタカテゴリを手動で更新するサーバーアクション
+ */
+export async function recalculateBaristaCategoryAction(baristaId: string) {
+  try {
+    // Edge Functionを使用してカテゴリを更新
+    const { data, error } = await updateBaristaCategory(baristaId);
+
+    if (error) {
+      console.error("バリスタカテゴリ更新中にエラーが発生しました:", error);
+      return { error: "バリスタカテゴリ更新中にエラーが発生しました" };
+    }
+
+    // バリスタのプロフィールページを再検証
+    revalidatePath(`/barista/${baristaId}`);
+
+    return { success: true, category: data?.category };
+  } catch (error) {
+    console.error("バリスタカテゴリ更新中に予期せぬエラーが発生しました:", error);
+    return { error: "バリスタカテゴリ更新中に予期せぬエラーが発生しました" };
   }
 }

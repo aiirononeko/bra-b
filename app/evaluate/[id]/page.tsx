@@ -10,12 +10,15 @@ import { fetchBaristaProfileById } from "../../repositories/profiles-repository"
 // バリスタ評価ページのパラメータの型定義
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: { message?: string; success?: string };
+  searchParams: Promise<{ message?: string; success?: string }>;
 };
 
 export default async function EvaluateBaristaPage({ params, searchParams }: Props) {
   // Next.js App Routerではparamsをawaitする必要がある
   const { id } = await params;
+
+  // searchParamsをawaitする
+  const parsedSearchParams = await searchParams;
 
   const { data: profile, error } = await fetchBaristaProfileById(id);
 
@@ -40,8 +43,8 @@ export default async function EvaluateBaristaPage({ params, searchParams }: Prop
   };
 
   // 結果メッセージがあれば取得
-  const message = searchParams.message;
-  const success = searchParams.success === "true";
+  const message = parsedSearchParams.message;
+  const success = parsedSearchParams.success === "true";
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -27,6 +27,9 @@ export type BaristaProfile = {
     twitter?: string;
   } | null;
   shop_name: string | null;
+  years_of_experience: number | null;
+  google_maps_link: string | null;
+  prefecture: string | null;
   // バリスタカテゴリ情報
   barista_categories?: {
     category: string;
@@ -141,6 +144,9 @@ export async function upsertBaristaProfile(
     displayName: string;
     shopName?: string;
     bio?: string;
+    yearsOfExperience?: number;
+    googleMapsLink?: string;
+    prefecture?: string;
     snsLinks?: {
       instagram?: string;
       twitter?: string;
@@ -149,7 +155,8 @@ export async function upsertBaristaProfile(
 ) {
   const supabase = await createClient();
 
-  const { displayName, shopName, bio, snsLinks } = data;
+  const { displayName, shopName, bio, yearsOfExperience, googleMapsLink, prefecture, snsLinks } =
+    data;
 
   return supabase.from("profiles").upsert({
     id: userId,
@@ -158,6 +165,9 @@ export async function upsertBaristaProfile(
     display_name: displayName,
     shop_name: shopName || null,
     bio: bio || null,
+    years_of_experience: yearsOfExperience || null,
+    google_maps_link: googleMapsLink || null,
+    prefecture: prefecture || null,
     sns_links: snsLinks || null,
     updated_at: new Date().toISOString(),
   });

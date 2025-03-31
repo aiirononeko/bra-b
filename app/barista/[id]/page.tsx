@@ -1,15 +1,16 @@
-import FavoriteButtonContainer from "@/app/components/favorite-button-container";
-import RecalculateCategoryButton from "@/app/components/recalculate-category-button";
-import { fetchBaristaProfileById } from "@/app/repositories/profiles-repository";
-import type { BaristaProfile } from "@/app/repositories/profiles-repository";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import FavoriteButtonContainer from "@/app/components/favorite-button-container";
+import RecalculateCategoryButton from "@/app/components/recalculate-category-button";
+import { fetchBaristaEvaluations } from "@/app/repositories/evaluation-repository";
+import { fetchBaristaProfileById } from "@/app/repositories/profiles-repository";
+
 // バリスタ詳細ページのパラメータの型定義
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: { auth_success?: string; message?: string };
+  searchParams: Promise<{ auth_success?: string; message?: string }>;
 };
 
 // カテゴリの型定義
@@ -48,6 +49,9 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
   // Next.js App Routerではparamsをawaitする必要がある
   const { id } = await params;
 
+  // searchParamsをawaitする
+  const parsedSearchParams = await searchParams;
+
   const { data: profile, error } = await fetchBaristaProfileById(id);
 
   // プロフィールが見つからない場合は404ページを表示
@@ -56,8 +60,8 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
   }
 
   // auth_successパラメータの確認
-  const authSuccess = searchParams.auth_success === "true";
-  const message = searchParams.message;
+  const authSuccess = parsedSearchParams.auth_success === "true";
+  const message = parsedSearchParams.message;
 
   // バリスタカテゴリ情報（信頼度が高い順に並べ替え）
   const categories = Array.isArray(profile.barista_categories)
@@ -67,6 +71,38 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
     : profile.barista_categories
       ? [profile.barista_categories]
       : [];
+
+  // 評価データを取得
+  const { data: evaluations } = await fetchBaristaEvaluations(id);
+
+  // 評価アイテムの出現頻度を集計
+  const evaluationItemCounts: Record<string, number> = {};
+  let totalEvaluations = 0;
+
+  if (evaluations && evaluations.length > 0) {
+    totalEvaluations = evaluations.length;
+    for (const evaluation of evaluations) {
+      if (evaluation.evaluation_details) {
+        for (const detail of evaluation.evaluation_details) {
+          const items = detail.evaluation_items;
+          if (
+            items &&
+            typeof items === "object" &&
+            "name" in items &&
+            typeof items.name === "string"
+          ) {
+            evaluationItemCounts[items.name] = (evaluationItemCounts[items.name] || 0) + 1;
+          }
+        }
+      }
+    }
+  }
+
+  // 頻度順に並べ替え
+  const topEvaluationItems = Object.entries(evaluationItemCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => ({ name, count, id: name })); // idを追加して一意のkeyとして使用
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -349,15 +385,18 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
                   注目の評価
                 </h3>
                 <div className="space-y-2">
-                  <div className="inline-block bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1 text-sm mr-2 mb-2">
-                    ラテアートが美しい
-                  </div>
-                  <div className="inline-block bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1 text-sm mr-2 mb-2">
-                    丁寧な接客
-                  </div>
-                  <div className="inline-block bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1 text-sm mr-2 mb-2">
-                    味が素晴らしい
-                  </div>
+                  {topEvaluationItems.length > 0 ? (
+                    topEvaluationItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="inline-block bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1 text-sm mr-2 mb-2"
+                      >
+                        {item.name} ({item.count})
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">まだ評価がありません</p>
+                  )}
                 </div>
               </div>
 
@@ -379,30 +418,8 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="ml-2 text-lg font-semibold">15件の評価・2件のチップ</span>
+                  <span className="ml-2 text-lg font-semibold">{totalEvaluations}件の評価</span>
                 </div>
-              </div>
-            </div>
-
-            {/* 評価コメント */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold border-b pb-2 border-gray-200 dark:border-gray-700">
-                最近のチップ・コメント
-              </h3>
-
-              <div className="border-l-4 border-green-500 pl-4 py-2">
-                <div className="flex items-center mb-2">
-                  <div className="bg-gray-200 dark:bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center mr-2">
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">匿</span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">匿名ユーザー</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">3日前 • ¥500チップ</p>
-                  </div>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300">
-                  いつも美味しいコーヒーをありがとうございます！エチオピア産の豆を使ったハンドドリップが特に好きです。
-                </p>
               </div>
             </div>
           </div>

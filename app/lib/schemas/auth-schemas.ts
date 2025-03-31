@@ -49,6 +49,23 @@ export const baristaProfileSchema = z.object({
     .max(50, { message: "表示名は50文字以内で入力してください" }),
   shopName: z.string().max(100, { message: "店舗名は100文字以内で入力してください" }).optional(),
   bio: z.string().max(500, { message: "自己紹介は500文字以内で入力してください" }).optional(),
+  yearsOfExperience: z
+    .number()
+    .min(0, { message: "0以上の値を入力してください" })
+    .max(100, { message: "100以下の値を入力してください" })
+    .optional()
+    .nullable(),
+  googleMapsLink: z
+    .string()
+    .url({ message: "有効なURLを入力してください" })
+    .max(500, { message: "URLは500文字以内で入力してください" })
+    .optional()
+    .nullable(),
+  prefecture: z
+    .string()
+    .max(50, { message: "都道府県は50文字以内で入力してください" })
+    .optional()
+    .nullable(),
   snsLinks: z
     .object({
       instagram: z.string().optional(),

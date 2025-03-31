@@ -6,13 +6,16 @@ import Link from "next/link";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { auth_success?: string; message?: string };
+  searchParams: Promise<{ auth_success?: string; message?: string }>;
 }) {
   const { data: baristaProfiles, error } = await fetchBaristaProfiles();
 
+  // searchParamsをawaitする
+  const params = await searchParams;
+
   // auth_successパラメータの確認
-  const authSuccess = searchParams.auth_success === "true";
-  const message = searchParams.message;
+  const authSuccess = params.auth_success === "true";
+  const message = params.message;
 
   return (
     <div className="min-h-screen">

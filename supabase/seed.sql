@@ -122,36 +122,28 @@ VALUES
     'anonymous-123456'
   );
 
--- 評価カテゴリの作成
-INSERT INTO public.evaluation_categories (id, name, is_active, sort_order, created_at, updated_at)
-VALUES
-  ('11111111-1111-1111-aaaa-111111111111', '味', true, 1, NOW(), NOW()),
-  ('22222222-2222-2222-aaaa-222222222222', '見た目', true, 2, NOW(), NOW()),
-  ('33333333-3333-3333-aaaa-333333333333', 'サービス', true, 3, NOW(), NOW()),
-  ('44444444-4444-4444-aaaa-444444444444', '雰囲気', true, 4, NOW(), NOW());
-
 -- 評価項目の作成
-INSERT INTO public.evaluation_items (id, category_id, name, is_common, is_active, sort_order, created_at, updated_at)
+INSERT INTO public.evaluation_items (id, name, is_active, sort_order, created_at, updated_at)
 VALUES
-  -- 味カテゴリの評価項目
-  ('aaaaaaaa-1111-aaaa-1111-aaaaaaaaaaaa', '11111111-1111-1111-aaaa-111111111111', '酸味のバランス', true, true, 1, NOW(), NOW()),
-  ('aaaaaaaa-2222-aaaa-2222-aaaaaaaaaaaa', '11111111-1111-1111-aaaa-111111111111', 'コクの深さ', true, true, 2, NOW(), NOW()),
-  ('aaaaaaaa-3333-aaaa-3333-aaaaaaaaaaaa', '11111111-1111-1111-aaaa-111111111111', '後味の余韻', true, true, 3, NOW(), NOW()),
+  -- 親しみやすい
+  ('11111111-aaaa-1111-aaaa-111111111111', '笑顔が素敵', true, 1, NOW(), NOW()),
+  ('11111111-aaaa-2222-aaaa-111111111111', '会話が心地よい', true, 2, NOW(), NOW()),
+  ('11111111-aaaa-3333-aaaa-111111111111', '気遣いがある', true, 3, NOW(), NOW()),
   
-  -- 見た目カテゴリの評価項目
-  ('bbbbbbbb-1111-bbbb-1111-bbbbbbbbbbbb', '22222222-2222-2222-aaaa-222222222222', 'ラテアートの美しさ', false, true, 1, NOW(), NOW()),
-  ('bbbbbbbb-2222-bbbb-2222-bbbbbbbbbbbb', '22222222-2222-2222-aaaa-222222222222', '盛り付けの工夫', true, true, 2, NOW(), NOW()),
-  ('bbbbbbbb-3333-bbbb-3333-bbbbbbbbbbbb', '22222222-2222-2222-aaaa-222222222222', 'カップの選択', true, true, 3, NOW(), NOW()),
+  -- 美味しい一杯を届ける
+  ('22222222-aaaa-1111-aaaa-222222222222', 'コーヒーの知識が豊富', true, 4, NOW(), NOW()),
+  ('22222222-aaaa-2222-aaaa-222222222222', 'ラテアートが美しい', true, 5, NOW(), NOW()),
+  ('22222222-aaaa-3333-aaaa-222222222222', 'コーヒーの味が美味しい', true, 6, NOW(), NOW()),
+  ('22222222-aaaa-4444-aaaa-222222222222', 'ドリンクの品質が安定している', true, 7, NOW(), NOW()),
   
-  -- サービスカテゴリの評価項目
-  ('cccccccc-1111-cccc-1111-cccccccccccc', '33333333-3333-3333-aaaa-333333333333', '知識と説明', true, true, 1, NOW(), NOW()),
-  ('cccccccc-2222-cccc-2222-cccccccccccc', '33333333-3333-3333-aaaa-333333333333', '提供スピード', true, true, 2, NOW(), NOW()),
-  ('cccccccc-3333-cccc-3333-cccccccccccc', '33333333-3333-3333-aaaa-333333333333', 'フレンドリーさ', true, true, 3, NOW(), NOW()),
+  -- 洗練されたサービス
+  ('33333333-aaaa-1111-aaaa-333333333333', '提供がスピーディー', true, 8, NOW(), NOW()),
+  ('33333333-aaaa-2222-aaaa-333333333333', '所作が美しい', true, 9, NOW(), NOW()),
   
-  -- 雰囲気カテゴリの評価項目
-  ('dddddddd-1111-dddd-1111-dddddddddddd', '44444444-4444-4444-aaaa-444444444444', '店内の居心地', true, true, 1, NOW(), NOW()),
-  ('dddddddd-2222-dddd-2222-dddddddddddd', '44444444-4444-4444-aaaa-444444444444', 'BGMの選択', true, true, 2, NOW(), NOW()),
-  ('dddddddd-3333-dddd-3333-dddddddddddd', '44444444-4444-4444-aaaa-444444444444', '清潔感', true, true, 3, NOW(), NOW());
+  -- エンターテイナー
+  ('44444444-aaaa-1111-aaaa-444444444444', 'ユーモアがある', true, 10, NOW(), NOW()),
+  ('44444444-aaaa-2222-aaaa-444444444444', 'ウェルカム精神がある', true, 11, NOW(), NOW()),
+  ('44444444-aaaa-3333-aaaa-444444444444', 'おすすめが的確', true, 12, NOW(), NOW());
 
 -- 評価データの作成
 INSERT INTO public.evaluations (id, barista_profile_id, evaluator_id, evaluated_at, created_at)
@@ -172,34 +164,34 @@ VALUES
 INSERT INTO public.evaluation_details (id, evaluation_id, evaluation_item_id, created_at)
 VALUES
   -- 山田コーヒーへの評価詳細（鈴木ユーザー）
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-aaaa-1111-aaaaaaaaaaaa', NOW() - INTERVAL '7 days'), -- 酸味のバランス
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-2222-aaaa-2222-aaaaaaaaaaaa', NOW() - INTERVAL '7 days'), -- コクの深さ
-  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'cccccccc-1111-cccc-1111-cccccccccccc', NOW() - INTERVAL '7 days'), -- 知識と説明
+  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-aaaa-1111-aaaa-111111111111', NOW() - INTERVAL '7 days'), -- 笑顔が素敵
+  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-aaaa-2222-aaaa-111111111111', NOW() - INTERVAL '7 days'), -- 会話が心地よい
+  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '22222222-aaaa-1111-aaaa-222222222222', NOW() - INTERVAL '7 days'), -- コーヒーの知識が豊富
   
   -- 山田コーヒーへの評価詳細（小林ユーザー）
-  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'aaaaaaaa-2222-aaaa-2222-aaaaaaaaaaaa', NOW() - INTERVAL '6 days'), -- コクの深さ
-  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'bbbbbbbb-2222-bbbb-2222-bbbbbbbbbbbb', NOW() - INTERVAL '6 days'), -- 盛り付けの工夫
-  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'dddddddd-1111-dddd-1111-dddddddddddd', NOW() - INTERVAL '6 days'), -- 店内の居心地
+  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-aaaa-2222-aaaa-222222222222', NOW() - INTERVAL '6 days'), -- ラテアートが美しい
+  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-aaaa-3333-aaaa-222222222222', NOW() - INTERVAL '6 days'), -- コーヒーの味が美味しい
+  (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-aaaa-4444-aaaa-222222222222', NOW() - INTERVAL '6 days'), -- ドリンクの品質が安定している
   
   -- 佐藤エスプレッソへの評価詳細（鈴木ユーザー）
-  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'bbbbbbbb-1111-bbbb-1111-bbbbbbbbbbbb', NOW() - INTERVAL '5 days'), -- ラテアートの美しさ
-  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'cccccccc-3333-cccc-3333-cccccccccccc', NOW() - INTERVAL '5 days'), -- フレンドリーさ
-  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'dddddddd-3333-dddd-3333-dddddddddddd', NOW() - INTERVAL '5 days'), -- 清潔感
+  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '11111111-aaaa-1111-aaaa-111111111111', NOW() - INTERVAL '5 days'), -- 笑顔が素敵
+  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '33333333-aaaa-2222-aaaa-333333333333', NOW() - INTERVAL '5 days'), -- 所作が美しい
+  (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '44444444-aaaa-3333-aaaa-444444444444', NOW() - INTERVAL '5 days'), -- おすすめが的確
   
   -- 佐藤エスプレッソへの評価詳細（小林ユーザー）
-  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', 'aaaaaaaa-1111-aaaa-1111-aaaaaaaaaaaa', NOW() - INTERVAL '4 days'), -- 酸味のバランス
-  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', 'bbbbbbbb-1111-bbbb-1111-bbbbbbbbbbbb', NOW() - INTERVAL '4 days'), -- ラテアートの美しさ
-  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', 'cccccccc-2222-cccc-2222-cccccccccccc', NOW() - INTERVAL '4 days'), -- 提供スピード
+  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '11111111-aaaa-2222-aaaa-111111111111', NOW() - INTERVAL '4 days'), -- 会話が心地よい
+  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '22222222-aaaa-3333-aaaa-222222222222', NOW() - INTERVAL '4 days'), -- コーヒーの味が美味しい
+  (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '22222222-aaaa-4444-aaaa-222222222222', NOW() - INTERVAL '4 days'), -- ドリンクの品質が安定している
   
   -- 田中ブリューへの評価詳細（鈴木ユーザー）
-  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', 'aaaaaaaa-2222-aaaa-2222-aaaaaaaaaaaa', NOW() - INTERVAL '3 days'), -- コクの深さ
-  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', 'aaaaaaaa-3333-aaaa-3333-aaaaaaaaaaaa', NOW() - INTERVAL '3 days'), -- 後味の余韻
-  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', 'dddddddd-2222-dddd-2222-dddddddddddd', NOW() - INTERVAL '3 days'), -- BGMの選択
+  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '22222222-aaaa-2222-aaaa-222222222222', NOW() - INTERVAL '3 days'), -- ラテアートが美しい
+  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '22222222-aaaa-3333-aaaa-222222222222', NOW() - INTERVAL '3 days'), -- コーヒーの味が美味しい
+  (gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '33333333-aaaa-1111-aaaa-333333333333', NOW() - INTERVAL '3 days'), -- 提供がスピーディー
   
   -- 田中ブリューへの評価詳細（小林ユーザー）
-  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', 'aaaaaaaa-3333-aaaa-3333-aaaaaaaaaaaa', NOW() - INTERVAL '2 days'), -- 後味の余韻
-  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', 'cccccccc-1111-cccc-1111-cccccccccccc', NOW() - INTERVAL '2 days'), -- 知識と説明
-  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', 'dddddddd-1111-dddd-1111-dddddddddddd', NOW() - INTERVAL '2 days'); -- 店内の居心地
+  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', '22222222-aaaa-1111-aaaa-222222222222', NOW() - INTERVAL '2 days'), -- コーヒーの知識が豊富
+  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', '22222222-aaaa-4444-aaaa-222222222222', NOW() - INTERVAL '2 days'), -- ドリンクの品質が安定している
+  (gen_random_uuid(), '66666666-6666-6666-6666-666666666666', '44444444-aaaa-3333-aaaa-444444444444', NOW() - INTERVAL '2 days'); -- おすすめが的確
 
 -- お気に入りデータの作成
 INSERT INTO public.favorites (id, user_id, barista_profile_id, created_at, updated_at, anonymous_id)

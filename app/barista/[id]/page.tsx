@@ -169,12 +169,14 @@ export default async function BaristaDetailPage({ params, searchParams }: Props)
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">評価</h2>
-              <button
-                type="button"
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-4 rounded-full transition-colors text-sm"
-              >
-                評価する
-              </button>
+              <Link href={`/evaluate/${profile.id}`}>
+                <button
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-4 rounded-full transition-colors text-sm"
+                >
+                  評価する
+                </button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

@@ -2,6 +2,7 @@ import { signOut } from "@/app/actions/auth";
 import { createClient } from "@/utils/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
+import QRCode from "react-qr-code";
 
 export default async function Account() {
   const supabase = await createClient();
@@ -25,6 +26,12 @@ export default async function Account() {
     (userEmail ? userEmail.split("@")[0] : "") ||
     "ユーザー";
   const userType = user?.user_metadata?.user_type === "barista" ? "バリスタ" : "カスタマー";
+
+  // バリスタ評価用のQRコードURL
+  const isBarista = user?.user_metadata?.user_type === "barista";
+  const evaluationUrl = isBarista
+    ? `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555"}/evaluate/${user?.id}`
+    : "";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -200,6 +207,22 @@ export default async function Account() {
                     : "情報なし"}
                 </p>
               </div>
+
+              {isBarista && (
+                <div className="pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    評価QRコード
+                  </h4>
+                  <div className="bg-white p-4 rounded-lg flex flex-col items-center">
+                    <div className="mb-2">
+                      <QRCode value={evaluationUrl} size={180} />
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                      このQRコードをカスタマーに読み取ってもらうことで、あなたの評価を受け取ることができます。
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-6">
                 <Link

@@ -3,7 +3,9 @@ import Link from "next/link";
 import BaristaCard from "./components/barista-card";
 import { fetchBaristaProfiles } from "./repositories/profiles-repository";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: { searchParams: { auth_success?: string; message?: string } }) {
   const { data: baristaProfiles, error } = await fetchBaristaProfiles();
 
   // サーバーサイドでのエラーハンドリング
@@ -12,8 +14,17 @@ export default async function Home() {
     throw new Error("バリスタ情報の取得に失敗しました");
   }
 
+  // auth_successパラメータの確認
+  const authSuccess = searchParams.auth_success === "true";
+  const message = searchParams.message;
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {authSuccess && message && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+          {message}
+        </div>
+      )}
       <header className="mb-8">
         <div className="flex justify-end mb-4">
           <div className="space-x-2">
@@ -69,12 +80,14 @@ export default async function Home() {
                 あなたのバリスタとしての価値を可視化し、ファンを作りましょう。
                 評価とチップを通して、あなたのスキルや個性が正当に評価されます。
               </p>
-              <button
-                type="button"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-colors"
-              >
-                バリスタ登録はこちら
-              </button>
+              <Link href="/auth/register">
+                <button
+                  type="button"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-colors"
+                >
+                  バリスタ登録はこちら
+                </button>
+              </Link>
             </div>
             <div className="md:w-1/2 flex justify-center">
               <div className="relative w-[400px] h-[300px] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">

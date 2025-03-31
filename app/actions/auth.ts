@@ -1,11 +1,11 @@
 "use server";
 
-import { migrateAnonymousFavorites } from "@/app/repositories/favorites-repository";
-import { getAnonymousIdFromCookie } from "@/app/utils/anonymous-auth/server";
-import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { migrateAnonymousFavorites } from "@/app/repositories/favorites-repository";
+import { createClient } from "@/utils/supabase/server";
 
 /**
  * 認証結果の型

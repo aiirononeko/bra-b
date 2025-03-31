@@ -1,6 +1,4 @@
 import { exchangeCodeForSession, verifyOtp } from "@/app/actions/auth";
-import type { EmailOtpType } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Creating a handler to a GET request to route /auth/confirm
@@ -36,6 +34,9 @@ export async function GET(request: NextRequest) {
   // 検証が成功した場合はリダイレクト先へ
   if (verifyResult.success) {
     redirectTo.searchParams.delete("next");
+    // 成功メッセージをリダイレクト先に追加
+    redirectTo.searchParams.set("auth_success", "true");
+    redirectTo.searchParams.set("message", "認証に成功しました。ログインしました。");
     return NextResponse.redirect(redirectTo);
   }
 

@@ -28,10 +28,7 @@ export function BaristaRegisterForm({ anonymousId }: BaristaRegisterFormProps) {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
-      password: "",
-      confirmPassword: "",
       userType: "barista",
-      displayName: "",
       authType: "magic_link", // デフォルトをマジックリンクに設定
       anonymousId, // 匿名IDをフォームデータに含める
     },
@@ -44,7 +41,9 @@ export function BaristaRegisterForm({ anonymousId }: BaristaRegisterFormProps) {
 
     try {
       // 認証方法によって処理を分岐
-      const { email, displayName, userType, authType } = data;
+      const { email, userType, authType } = data;
+      // メールアドレスから表示名を自動生成
+      const displayName = email.split("@")[0];
 
       type AuthResult = { success: boolean; error?: string; redirectTo?: string };
       let result: AuthResult;
@@ -113,23 +112,6 @@ export function BaristaRegisterForm({ anonymousId }: BaristaRegisterFormProps) {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <label
-            htmlFor="displayName"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            表示名 <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="displayName"
-            {...register("displayName")}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-          />
-          {errors.displayName && (
-            <p className="mt-1 text-sm text-red-600">{errors.displayName.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label
             htmlFor="email"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
@@ -185,6 +167,9 @@ export function BaristaRegisterForm({ anonymousId }: BaristaRegisterFormProps) {
           >
             {isSubmitting ? "登録中..." : "登録する"}
           </button>
+        </div>
+        <div className="text-xs text-gray-500 mt-2">
+          ※「登録する」ボタンをクリックすると、認証メールが送信されます。
         </div>
       </form>
 

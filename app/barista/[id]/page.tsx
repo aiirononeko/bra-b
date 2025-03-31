@@ -7,9 +7,10 @@ import { notFound } from "next/navigation";
 // バリスタ詳細ページのパラメータの型定義
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: { auth_success?: string; message?: string };
 };
 
-export default async function BaristaDetailPage({ params }: Props) {
+export default async function BaristaDetailPage({ params, searchParams }: Props) {
   // Next.js App Routerではparamsをawaitする必要がある
   const { id } = await params;
 
@@ -20,8 +21,18 @@ export default async function BaristaDetailPage({ params }: Props) {
     notFound();
   }
 
+  // auth_successパラメータの確認
+  const authSuccess = searchParams.auth_success === "true";
+  const message = searchParams.message;
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {authSuccess && message && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+          {message}
+        </div>
+      )}
+
       <div className="mb-4">
         <Link href="/" className="text-blue-500 hover:text-blue-700 flex items-center gap-1">
           <svg

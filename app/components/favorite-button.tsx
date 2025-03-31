@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { getFavoriteStatusAction, toggleFavoriteAction } from "@/app/actions/favorites";
+
 type FavoriteButtonProps = {
   baristaProfileId: string;
   initialFavorite?: boolean;
@@ -21,26 +23,8 @@ export default function FavoriteButton({
   useEffect(() => {
     const fetchFavoriteStatus = async () => {
       try {
-        // キャッシュを回避するためのタイムスタンプを追加
-        const timestamp = new Date().getTime();
-        const response = await fetch(
-          `/api/favorites?baristaProfileId=${baristaProfileId}&_=${timestamp}`,
-          {
-            // キャッシュを無効化
-            cache: "no-store",
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-            },
-          }
-        );
-        const data = await response.json();
-
-        if (response.ok) {
-          setIsFavorite(data.isFavorite);
-        } else {
-          console.error("お気に入り状態の取得に失敗:", data.error);
-        }
+        const result = await getFavoriteStatusAction(baristaProfileId);
+        setIsFavorite(result.isFavorite);
       } catch (err) {
         console.error("お気に入り状態の取得エラー:", err);
       }
@@ -50,29 +34,16 @@ export default function FavoriteButton({
   }, [baristaProfileId]);
 
   // お気に入りトグル処理
-  const toggleFavorite = async () => {
+  const handleToggleFavorite = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/favorites", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ baristaProfileId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setIsFavorite(data.action === "add");
-      } else {
-        setError(data.error || "お気に入り操作に失敗しました");
-        console.error("お気に入り登録エラー:", data.error);
-      }
-    } catch (err) {
-      setError("サーバーとの通信に失敗しました");
+      const result = await toggleFavoriteAction(baristaProfileId);
+      setIsFavorite(result.action === "add");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "お気に入り操作に失敗しました";
+      setError(errorMessage);
       console.error("お気に入り操作エラー:", err);
     } finally {
       setIsLoading(false);
@@ -91,7 +62,7 @@ export default function FavoriteButton({
     <>
       <button
         type="button"
-        onClick={toggleFavorite}
+        onClick={handleToggleFavorite}
         disabled={isLoading}
         className={buttonClassName}
         title={isFavorite ? "お気に入りから削除" : "お気に入りに追加"}

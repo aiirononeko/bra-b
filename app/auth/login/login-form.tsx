@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { loginUser } from "@/app/lib/actions/auth-actions";
+import { signInWithGoogle, signInWithMagicLink } from "@/app/actions/auth";
 import { type LoginFormValues, loginSchema } from "@/app/lib/schemas/auth-schemas";
 import { getAnonymousIdFromClient } from "@/app/utils/anonymous-auth/client";
 
@@ -18,7 +18,6 @@ export function LoginForm({ initialMessage }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(initialMessage || null);
-  const [anonymousId, setAnonymousId] = useState<string | undefined>(undefined);
 
   // コンポーネントマウント時に匿名IDを取得
   useEffect(() => {
@@ -26,7 +25,6 @@ export function LoginForm({ initialMessage }: LoginFormProps) {
       const id = getAnonymousIdFromClient();
       if (id) {
         console.log("匿名ID取得:", id);
-        setAnonymousId(id);
       }
     };
 
@@ -67,10 +65,10 @@ export function LoginForm({ initialMessage }: LoginFormProps) {
       }
 
       // マジックリンク認証実行
-      const result = await loginUser({
+      const result = await signInWithMagicLink({
         email,
-        authType: "magic_link",
-        anonymousId,
+        userType: "customer",
+        displayName: email.split("@")[0],
       });
 
       if (!result.success) {
@@ -98,10 +96,9 @@ export function LoginForm({ initialMessage }: LoginFormProps) {
 
     try {
       // Server Actionを使用してGoogle認証処理を実行
-      const result = await loginUser({
-        email: "", // Google認証ではメールアドレス不要
-        authType: "google",
-        anonymousId,
+      const result = await signInWithGoogle({
+        userType: "customer",
+        displayName: "User",
       });
 
       if (!result.success) {

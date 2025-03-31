@@ -1,7 +1,7 @@
+import { exchangeCodeForSession, verifyOtp } from "@/app/actions/auth";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-
-import { createClient } from "@/utils/supabase/server";
 
 // Creating a handler to a GET request to route /auth/confirm
 export async function GET(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   // OTP検証に必要なパラメータの取得
   const token_hash = searchParams.get("token_hash");
   const code = searchParams.get("code"); // メールリンクから送られてくるcodeパラメータも対応
-  const type = (searchParams.get("type") as EmailOtpType | null) || "email";
+  const type = searchParams.get("type") || "email";
 
   // リダイレクト先を設定（不正な場合はerrorに進む）
   const next = searchParams.get("next") || "/";
@@ -22,25 +22,19 @@ export async function GET(request: NextRequest) {
   redirectTo.searchParams.delete("code");
   redirectTo.searchParams.delete("type");
 
-  const supabase = await createClient();
-  let verifyError = null;
+  let verifyResult = { success: false };
 
   // token_hashがある場合はその検証を試みる
   if (token_hash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    });
-    verifyError = error;
+    verifyResult = await verifyOtp(type, token_hash);
   }
   // codeがある場合はセッションの検証を試みる
   else if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    verifyError = error;
+    verifyResult = await exchangeCodeForSession(code);
   }
 
   // 検証が成功した場合はリダイレクト先へ
-  if (!verifyError) {
+  if (verifyResult.success) {
     redirectTo.searchParams.delete("next");
     return NextResponse.redirect(redirectTo);
   }

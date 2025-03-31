@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { registerUser } from "@/app/lib/actions/auth-actions";
+import { signInWithGoogle, signInWithMagicLink } from "@/app/actions/auth";
 import { type RegisterFormValues, registerSchema } from "@/app/lib/schemas/auth-schemas";
 
 interface CustomerRegisterFormProps {
@@ -23,7 +23,6 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -44,8 +43,33 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
     setAuthError(null);
 
     try {
-      // Server Actionを使用してユーザー登録処理を実行
-      const result = await registerUser(data);
+      // 認証方法によって処理を分岐
+      const { email, displayName, userType, authType } = data;
+
+      type AuthResult = { success: boolean; error?: string; redirectTo?: string };
+      let result: AuthResult;
+
+      switch (authType) {
+        case "magic_link":
+          result = await signInWithMagicLink({
+            email,
+            userType,
+            displayName,
+          });
+          break;
+
+        case "google":
+          result = await signInWithGoogle({
+            userType,
+            displayName,
+          });
+          break;
+
+        default:
+          setAuthError("サポートされていない認証方法です");
+          setIsSubmitting(false);
+          return;
+      }
 
       if (!result.success) {
         setAuthError(result.error || "登録処理中にエラーが発生しました");
@@ -69,9 +93,6 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
       setIsSubmitting(false);
     }
   };
-
-  // 認証方法の選択状態
-  const authType = watch("authType");
 
   return (
     <div className="bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
@@ -129,16 +150,6 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
               認証方法 <span className="text-red-500">*</span>
             </legend>
             <div className="flex flex-col space-y-2">
-              <label htmlFor="auth-password" className="inline-flex items-center">
-                <input
-                  id="auth-password"
-                  type="radio"
-                  value="password"
-                  {...register("authType")}
-                  className="form-radio text-blue-600"
-                />
-                <span className="ml-2">パスワード認証</span>
-              </label>
               <label htmlFor="auth-magic-link" className="inline-flex items-center">
                 <input
                   id="auth-magic-link"
@@ -165,47 +176,6 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
             )}
           </fieldset>
         </div>
-
-        {/* パスワード認証の場合のみ表示 */}
-        {authType === "password" && (
-          <>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                パスワード <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="password"
-                type="password"
-                {...register("password")}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                パスワード確認 <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                {...register("confirmPassword")}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-          </>
-        )}
 
         <div className="pt-2">
           <button

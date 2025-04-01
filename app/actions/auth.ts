@@ -1,6 +1,7 @@
 "use server";
 
 import type { EmailOtpType } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -198,4 +199,130 @@ export async function exchangeCodeForSession(code: string) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   return { success: !error, error: error?.message };
+}
+
+/**
+ * ユーザープロフィールの確認と作成
+ */
+async function ensureUserProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  userMetadata?: Record<string, any>
+) {
+  // プロフィールが既に存在するか確認
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
+
+  // プロフィールが存在しない場合のみ作成
+  if (!existingProfile) {
+    const userType = userMetadata?.user_type || "customer";
+    const displayName = userMetadata?.display_name || userMetadata?.name || userId.substring(0, 8);
+
+    // プロフィールを作成
+    const { error: profileError } = await supabase.from("profiles").insert({
+      user_id: userId,
+      type: userType,
+      display_name: displayName,
+      icon_url: userMetadata?.avatar_url || "",
+      bio: "",
+      shop_name: userType === "barista" ? userMetadata?.shop_name || "カフェ" : null,
+    });
+
+    if (profileError) {
+      console.error("プロフィール作成エラー:", profileError);
+      return false;
+    }
+
+    console.log(`新しいプロフィールを作成しました: ${userId}, タイプ: ${userType}`);
+    return true;
+  }
+
+  return true;
+}
+
+/**
+ * 認証確認処理
+ * auth/confirm/route.tsから移行したロジック
+ */
+export async function confirmAuth(params: {
+  tokenHash?: string | null;
+  code?: string | null;
+  type?: string | null;
+  anonymousId?: string | null;
+}) {
+  const { tokenHash, code, type = "email", anonymousId } = params;
+  let verifyResult = { success: false, error: null as string | null };
+
+  try {
+    // token_hashがある場合はその検証を試みる
+    if (tokenHash && type) {
+      const result = await verifyOtp(type, tokenHash);
+      verifyResult = { success: result.success, error: result.error || null };
+    }
+    // codeがある場合はセッションの検証を試みる
+    else if (code) {
+      const result = await exchangeCodeForSession(code);
+      verifyResult = { success: result.success, error: result.error || null };
+    } else {
+      console.error("No valid verification parameters found");
+      verifyResult.error = "有効な認証パラメータが見つかりません";
+    }
+  } catch (error) {
+    console.error("Error during verification:", error);
+    verifyResult.error = "認証処理中にエラーが発生しました";
+  }
+
+  // 検証が成功した場合
+  if (verifyResult.success) {
+    // ユーザー情報を取得
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      // プロフィールの存在確認・作成
+      await ensureUserProfile(supabase, user.id, user.user_metadata);
+
+      // 匿名データの移行（もし匿名IDがあれば）
+      if (anonymousId) {
+        try {
+          const { data: migrateResult } = await supabase.functions.invoke(
+            "migrate-anonymous-data",
+            {
+              body: { anonymous_id: anonymousId, user_id: user.id },
+            }
+          );
+          console.log("匿名データ移行結果:", migrateResult);
+        } catch (error) {
+          console.error("匿名データ移行エラー:", error);
+        }
+      }
+    }
+
+    // リダイレクト先を決定
+    let redirectPath = "/account";
+
+    // ユーザータイプがバリスタの場合はバリスタページへ
+    if (user?.user_metadata?.user_type === "barista" && user.id) {
+      redirectPath = `/barista/${user.id}`;
+    }
+
+    // 処理成功情報を含めて返却
+    return {
+      success: true,
+      redirectPath,
+      message: "認証に成功しました。ログインしました。",
+    };
+  }
+
+  // 認証失敗
+  return {
+    success: false,
+    redirectPath: "/error",
+    error: verifyResult.error || "認証に失敗しました",
+  };
 }

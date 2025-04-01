@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import HeaderContainer from "./components/layout/header-container";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +48,8 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <HeaderContainer />
+        <main className="min-h-[calc(100vh-64px)]">{children}</main>
         <Analytics />
       </body>
     </html>

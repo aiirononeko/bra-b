@@ -7,40 +7,58 @@ type SupabaseClient = ReturnType<typeof createClient>;
 // カテゴリ定義
 type CategoryType = "friendly" | "delicious" | "sophisticated" | "entertainer";
 
-// カテゴリに対応するアイテムのマッピング
-const categoryItemsMapping: Record<CategoryType, string[]> = {
-  friendly: [
-    // フレンドリーカテゴリに対応する評価項目ID
-    "笑顔が素敵",
-    "話しやすい",
-    "親身になってくれる",
-    "常連を覚えている",
-    "明るい",
-  ],
-  delicious: [
-    // 美味しい一杯カテゴリに対応する評価項目ID
-    "コーヒーの知識が豊富",
-    "味が素晴らしい",
-    "豆の説明が的確",
-    "淹れ方が丁寧",
-    "ラテアートが美しい",
-  ],
-  sophisticated: [
-    // 洗練された接客カテゴリに対応する評価項目ID
-    "身だしなみが清潔",
-    "丁寧な接客",
-    "店内の清潔さ",
-    "テキパキした動き",
-    "声が聞き取りやすい",
-  ],
-  entertainer: [
-    // エンターテイナーカテゴリに対応する評価項目ID
-    "話が面白い",
-    "個性的",
-    "コーヒーへの熱意がある",
-    "記憶に残る体験",
-    "SNSが魅力的",
-  ],
+// 新しいマッピング: 各評価項目に対して、カテゴリごとのポイント値を定義
+const itemCategoryPointsMapping: Record<string, Partial<Record<CategoryType, number>>> = {
+  笑顔が素敵: {
+    friendly: 7,
+    entertainer: 2,
+    sophisticated: 1,
+  },
+  会話が心地よい: {
+    friendly: 6,
+    entertainer: 3,
+    sophisticated: 1,
+  },
+  気遣いがある: {
+    friendly: 3,
+    sophisticated: 7,
+  },
+  コーヒーの知識が豊富: {
+    delicious: 8,
+    sophisticated: 1,
+    entertainer: 1,
+  },
+  ラテアートが美しい: {
+    delicious: 6,
+    entertainer: 4,
+  },
+  コーヒーの味が美味しい: {
+    delicious: 10,
+  },
+  ドリンクの品質が安定している: {
+    delicious: 8,
+    sophisticated: 2,
+  },
+  提供がスピーディ: {
+    sophisticated: 10,
+  },
+  所作が美しい: {
+    delicious: 2,
+    sophisticated: 8,
+  },
+  ユーモアがある: {
+    friendly: 3,
+    entertainer: 7,
+  },
+  ウェルカム精神がある: {
+    friendly: 5,
+    entertainer: 5,
+  },
+  おすすめが的確: {
+    delicious: 2,
+    sophisticated: 5,
+    entertainer: 3,
+  },
 };
 
 // リクエストの型定義
@@ -173,12 +191,18 @@ async function calculateAndUpdateBaristaCategory(
     return "未評価";
   }
 
-  // 評価アイテムの出現回数をカウント
-  const itemCounts: Record<string, number> = {};
-  // すべての評価アイテム名を取得（カテゴリ分類用）
-  const evaluationItemNames: string[] = [];
+  // 各カテゴリの合計ポイントを初期化
+  const categoryPoints: Record<CategoryType, number> = {
+    friendly: 0,
+    delicious: 0,
+    sophisticated: 0,
+    entertainer: 0,
+  };
 
-  // 各評価から評価項目を収集
+  // 評価アイテムの出現数をカウント
+  const itemCounts: Record<string, number> = {};
+
+  // 各評価から評価項目を収集して、カテゴリポイントを計算
   for (const evaluation of evaluations) {
     if (evaluation.evaluation_details && evaluation.evaluation_details.length > 0) {
       for (const detail of evaluation.evaluation_details) {
@@ -187,9 +211,13 @@ async function calculateAndUpdateBaristaCategory(
           if (itemName) {
             // アイテム出現回数をカウント
             itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
-            // ユニークなアイテム名を収集
-            if (!evaluationItemNames.includes(itemName)) {
-              evaluationItemNames.push(itemName);
+
+            // 各カテゴリにポイントを加算
+            const itemPoints = itemCategoryPointsMapping[itemName];
+            if (itemPoints) {
+              for (const [category, points] of Object.entries(itemPoints)) {
+                categoryPoints[category as CategoryType] += points as number;
+              }
             }
           }
         }
@@ -197,29 +225,24 @@ async function calculateAndUpdateBaristaCategory(
     }
   }
 
-  // カテゴリごとのスコアを計算
-  const categoryScores: CategoryScores[] = [];
+  // 評価数
   const totalEvaluations = evaluations.length;
 
-  // 各カテゴリのスコアを計算
-  for (const category of Object.keys(categoryItemsMapping) as CategoryType[]) {
-    const categoryItems = categoryItemsMapping[category];
-    let categoryCount = 0;
+  // カテゴリスコアを計算
+  const categoryScores: CategoryScores[] = [];
 
-    // このカテゴリに関連する評価項目の出現回数を計算
-    for (const itemName of evaluationItemNames) {
-      if (categoryItems.includes(itemName)) {
-        categoryCount += itemCounts[itemName] || 0;
-      }
-    }
+  // 各カテゴリのスコアを正規化（最大スコアを5とする）
+  const maxPossiblePoints = 10 * totalEvaluations; // 単一カテゴリの最大ポイント値
 
-    // カテゴリスコアを計算 (評価数に基づく正規化スコア)
-    const score = totalEvaluations > 0 ? categoryCount / (totalEvaluations * 2) : 0;
+  for (const category of Object.keys(categoryPoints) as CategoryType[]) {
+    const points = categoryPoints[category];
+    // スコアを0-5の範囲に正規化
+    const score = totalEvaluations > 0 ? Math.min((points / maxPossiblePoints) * 5, 5) : 0;
 
     categoryScores.push({
       categoryName: category,
-      count: categoryCount,
-      score: Math.min(score, 5), // 最大スコアは5とする
+      count: points, // カウントの代わりにポイントを使用
+      score: score,
     });
   }
 

@@ -2,22 +2,27 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { signInWithGoogle, signInWithMagicLink } from "@/app/actions/auth";
 import { type RegisterFormValues, registerSchema } from "@/app/lib/schemas/auth-schemas";
 
-interface CustomerRegisterFormProps {
-  anonymousId?: string;
+interface SignupFormProps {
+  initialMessage?: string | null;
 }
 
-export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps) {
+export function SignupForm({ initialMessage }: SignupFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const router = useRouter();
+  const [successMessage, setSuccessMessage] = useState<string | null>(initialMessage || null);
+
+  // initialMessageが変更された場合に表示を更新
+  useEffect(() => {
+    if (initialMessage) {
+      setSuccessMessage(initialMessage);
+    }
+  }, [initialMessage]);
 
   // React Hook Formの初期化
   const {
@@ -29,8 +34,7 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
     defaultValues: {
       email: "",
       userType: "customer",
-      authType: "magic_link", // デフォルトをマジックリンクに設定
-      anonymousId, // 匿名IDをフォームデータに含める
+      authType: "magic_link",
     },
   });
 
@@ -40,13 +44,11 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
     setAuthError(null);
 
     try {
-      // 認証方法によって処理を分岐
       const { email, userType, authType } = data;
       // メールアドレスから表示名を自動生成
       const displayName = email.split("@")[0];
 
-      type AuthResult = { success: boolean; error?: string; redirectTo?: string };
-      let result: AuthResult;
+      let result: { success: boolean; error?: string; redirectTo?: string };
 
       switch (authType) {
         case "magic_link":
@@ -76,13 +78,8 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
       }
 
       if (result.redirectTo) {
-        // 結果でリダイレクト先が指定されている場合はリダイレクト
         setSuccessMessage("登録が完了しました。リダイレクトします...");
-        setTimeout(() => {
-          router.push(result.redirectTo || "/account");
-        }, 1500);
       } else {
-        // それ以外の場合は成功メッセージを表示
         setSuccessMessage("登録確認メールを送信しました。メールをご確認ください。");
       }
     } catch (error) {
@@ -95,7 +92,7 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
 
   return (
     <div className="bg-white dark:bg-gray-800 px-6 py-8 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-6 text-center">ユーザー登録</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-center">アカウント登録</h2>
 
       {successMessage && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
@@ -124,6 +121,39 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
           {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+        </div>
+
+        <div className="mb-4">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              ユーザータイプ <span className="text-red-500">*</span>
+            </legend>
+            <div className="flex flex-col space-y-2">
+              <label htmlFor="user-type-customer" className="inline-flex items-center">
+                <input
+                  id="user-type-customer"
+                  type="radio"
+                  value="customer"
+                  {...register("userType")}
+                  className="form-radio text-blue-600"
+                />
+                <span className="ml-2">カスタマー（コーヒーを楽しみたい方）</span>
+              </label>
+              <label htmlFor="user-type-barista" className="inline-flex items-center">
+                <input
+                  id="user-type-barista"
+                  type="radio"
+                  value="barista"
+                  {...register("userType")}
+                  className="form-radio text-blue-600"
+                />
+                <span className="ml-2">バリスタ（コーヒーを提供する方）</span>
+              </label>
+            </div>
+            {errors.userType && (
+              <p className="mt-1 text-sm text-red-600">{errors.userType.message}</p>
+            )}
+          </fieldset>
         </div>
 
         <div className="mb-4">
@@ -176,7 +206,7 @@ export function CustomerRegisterForm({ anonymousId }: CustomerRegisterFormProps)
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-600 dark:text-gray-400">
           すでにアカウントをお持ちの場合は{" "}
-          <Link href="/auth/login" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+          <Link href="/login" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
             こちら
           </Link>
           からログインできます。

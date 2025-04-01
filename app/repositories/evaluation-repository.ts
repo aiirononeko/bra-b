@@ -15,6 +15,35 @@ export type EvaluationData = {
   evaluation_items: string[];
 };
 
+// 管理者ダッシュボード用の評価履歴データ型
+export type AdminEvaluationHistory = {
+  id: string;
+  evaluated_at: string;
+  barista_profile: {
+    id: string;
+    display_name: string;
+    shop_name: string | null;
+    barista_categories: {
+      category: string;
+      confidence_score: number;
+      friendly_score: number;
+      delicious_score: number;
+      sophisticated_score: number;
+      entertainer_score: number;
+      calculated_at: string;
+    } | null;
+  };
+  evaluator: {
+    id: string;
+    display_name: string;
+  };
+  evaluation_details: {
+    evaluation_items: {
+      name: string;
+    };
+  }[];
+};
+
 /**
  * 有効な評価項目をすべて取得する
  */
@@ -115,4 +144,44 @@ export async function updateBaristaCategory(
       event_type: eventType,
     },
   });
+}
+
+/**
+ * 管理者ダッシュボード用にすべての評価履歴を取得する
+ */
+export async function fetchAllEvaluationsForAdmin() {
+  const supabase = await createClient();
+
+  return supabase
+    .from("evaluations")
+    .select(
+      `
+      id,
+      evaluated_at,
+      barista_profile:barista_profile_id(
+        id,
+        display_name,
+        shop_name,
+        barista_categories(
+          category,
+          confidence_score,
+          friendly_score,
+          delicious_score,
+          sophisticated_score,
+          entertainer_score,
+          calculated_at
+        )
+      ),
+      evaluator:evaluator_id(
+        id,
+        display_name
+      ),
+      evaluation_details(
+        evaluation_items(
+          name
+        )
+      )
+    `
+    )
+    .order("evaluated_at", { ascending: false });
 }

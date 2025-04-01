@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "ignore_during_build": true,
+    "excluded_paths": ["**/node_modules/**", "**/supabase/functions/**"],
+    "deploy_options": {
+      "ignore_files": ["**/node_modules/**", "**/supabase/functions/**"]
+    }
+  }
+}

@@ -6,7 +6,7 @@
     "dev": "npm-run-all --parallel dev:next dev:functions",
     "dev:next": "next dev --turbopack -p 5555",
     "dev:functions": "supabase functions serve --no-verify-jwt",
-    "build": "next build",
+    "build": "IGNORE_SUPABASE_FUNCTIONS=true next build",
     "start": "next start",
     "lint": "next lint",
     "fmt": "biome format --write .",

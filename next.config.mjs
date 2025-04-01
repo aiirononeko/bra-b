@@ -24,31 +24,22 @@ const nextConfig = {
   },
   // Supabase functionsをビルド対象から除外
   webpack: (config) => {
-    // 環境変数が設定されている場合のみ除外
-    if (process.env.IGNORE_SUPABASE_FUNCTIONS === "true") {
-      config.externals = [...(config.externals || []), { "supabase/functions": "supabase/functions" }];
-    }
+    // supabase/functionsディレクトリを除外
+    config.externals = [...(config.externals || []), { "supabase/functions": "supabase/functions" }];
+    
+    // supabase/functionsディレクトリをwebpack経由で除外
+    config.module = config.module || {};
+    config.module.rules = config.module.rules || [];
+    config.module.rules.push({
+      test: /\.tsx?$/,
+      exclude: /supabase\/functions/,
+    });
+    
     return config;
   },
-  // ビルド時に特定のディレクトリを無視
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // TypeScriptのビルドエラーを許容
   typescript: {
     ignoreBuildErrors: true,
-  },
-  // supabase/functionsディレクトリを無視
-  distDir: 'build',
-  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
-  onDemandEntries: {
-    // period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
-    // number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 2,
-  },
-  compiler: {
-    // supabase/functionsディレクトリを除外
-    exclude: [/supabase\/functions/],
   },
 };
 

@@ -260,7 +260,7 @@ export async function confirmAuth({
   type?: string;
   anonymousId: string | null;
 }): Promise<AuthResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555";
   const supabase = await createClient();
   let success = false;
   let error: string | null = null;
@@ -442,10 +442,6 @@ export async function signUpWithEmail(
         error: error.message,
       };
     }
-
-    // トリガーが正常に動作していない場合があるため、
-    // 次回のログイン時にユーザープロファイルを確実に作成するよう対応
-    console.log("ユーザー登録プロセスが開始されました。プロファイルは認証後に作成されます。");
 
     return {
       success: true,

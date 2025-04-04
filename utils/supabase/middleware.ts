@@ -64,6 +64,16 @@ export async function createClient(request: NextRequest) {
     searchParams: Object.fromEntries(url.searchParams.entries()),
     host: url.host,
     origin: url.origin,
+    protocol: url.protocol,
+    allHeaders: Object.fromEntries(request.headers.entries()),
+  });
+
+  // 全クッキーをログに記録
+  const allCookies = request.cookies.getAll();
+  logDebug("全Cookieリスト", {
+    count: allCookies.length,
+    names: allCookies.map((c) => c.name),
+    authCookies: allCookies.filter((c) => c.name.includes("auth")).map((c) => c.name),
   });
 
   // レスポンスオブジェクトを初期化
@@ -82,26 +92,41 @@ export async function createClient(request: NextRequest) {
         cookies: {
           get(name: string) {
             const value = request.cookies.get(name)?.value;
-            logDebug(`Cookie get: ${name}`, { value: value ? "存在" : "なし" });
+            logDebug(`Cookie get: ${name}`, {
+              exists: !!value,
+              valueLength: value ? value.length : 0,
+              valueStart: value ? value.substring(0, 10) + "..." : "なし",
+            });
             return value;
           },
           set(name: string, value: string, options: CookieOptions) {
             // Cookieを設定
-            logDebug(`Cookie set: ${name}`, { options });
-            response.cookies.set({
-              name,
-              value,
+            const fullOptions = {
               ...options,
               // セキュリティ設定
               secure: true,
               httpOnly: true,
               sameSite: "lax",
               path: "/",
+            };
+
+            logDebug(`Cookie set: ${name}`, {
+              valueLength: value ? value.length : 0,
+              valueStart: value ? value.substring(0, 10) + "..." : "なし",
+              options: fullOptions,
+              domain: fullOptions.domain || "ドメイン指定なし",
+              cookieHost: request.headers.get("host"),
+            });
+
+            response.cookies.set({
+              name,
+              value,
+              ...fullOptions,
             });
           },
           remove(name: string, options: CookieOptions) {
             // Cookieを削除
-            logDebug(`Cookie remove: ${name}`);
+            logDebug(`Cookie remove: ${name}`, { options });
             response.cookies.set({
               name,
               value: "",
@@ -114,14 +139,33 @@ export async function createClient(request: NextRequest) {
     );
 
     // セッションを取得して状態をログに記録
-    const { data } = await supabase.auth.getSession();
-    logDebug("セッション状態", {
-      hasSession: !!data.session,
-      userId: data.session?.user?.id,
-      userEmail: data.session?.user?.email,
-    });
+    try {
+      const { data } = await supabase.auth.getSession();
+      logDebug("セッション状態", {
+        hasSession: !!data.session,
+        userId: data.session?.user?.id,
+        userEmail: data.session?.user?.email,
+        accessToken: data.session?.access_token ? "存在" : "なし",
+        refreshToken: data.session?.refresh_token ? "存在" : "なし",
+        expiresAt: data.session?.expires_at,
+      });
 
-    return { supabase, response };
+      // 設定されたCookieをチェック
+      const responseCookies = response.cookies.getAll();
+      logDebug("レスポンスCookie", {
+        count: responseCookies.length,
+        names: responseCookies.map((c) => c.name),
+        options: responseCookies.map((c) => ({
+          name: c.name,
+          options: { domain: c.domain, path: c.path, sameSite: c.sameSite },
+        })),
+      });
+
+      return { supabase, response };
+    } catch (sessionError) {
+      logDebug("セッション取得エラー", { error: sessionError });
+      return { supabase, response };
+    }
   } catch (error) {
     logDebug("Supabaseクライアント作成エラー", { error });
     return { supabase: null, response };

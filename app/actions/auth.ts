@@ -302,6 +302,7 @@ export async function confirmAuth({
     tokenHash: tokenHash ? "存在" : "なし",
     code: code ? "存在" : "なし",
     type,
+    anonymousId: anonymousId ? "存在" : "なし",
   });
 
   // 環境変数を確認
@@ -324,7 +325,9 @@ export async function confirmAuth({
     const { data: existingSessionData } = await supabase.auth.getSession();
     logDebug("既存セッション確認", {
       hasSession: !!existingSessionData.session,
-      user: existingSessionData.session?.user?.id,
+      userId: existingSessionData.session?.user?.id,
+      expires: existingSessionData.session?.expires_at,
+      cookiesExist: !!(await cookies()).getAll().length,
     });
 
     if (existingSessionData.session) {
@@ -349,22 +352,41 @@ export async function confirmAuth({
           id: string;
           user_metadata?: Record<string, unknown>;
         };
+        access_token: string;
+        refresh_token: string;
+        expires_at: number;
       } | null;
     };
 
     let authResult: AuthData;
 
     if (code) {
-      logDebug("コード交換開始", { code });
-      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      logDebug("コード交換開始", { code: code.substring(0, 5) + "..." });
 
-      if (exchangeError) {
-        logDebug("コード交換エラー", { error: exchangeError.message });
-        throw exchangeError;
+      try {
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          logDebug("コード交換エラー", {
+            error: exchangeError.message,
+            code: exchangeError.code,
+            status: exchangeError.status,
+          });
+          throw exchangeError;
+        }
+
+        logDebug("コード交換成功", {
+          hasSession: !!data.session,
+          accessToken: data.session?.access_token ? "存在" : "なし",
+          refreshToken: data.session?.refresh_token ? "存在" : "なし",
+          expiresAt: data.session?.expires_at,
+        });
+
+        authResult = data as AuthData;
+      } catch (e) {
+        logDebug("コード交換例外", { error: e instanceof Error ? e.message : String(e) });
+        throw e;
       }
-
-      logDebug("コード交換成功", { hasSession: !!data.session });
-      authResult = data as AuthData;
     } else {
       // 古い方式のトークンHash認証（現在はほとんど使われない）
       logDebug("トークンHash認証開始");
@@ -380,18 +402,30 @@ export async function confirmAuth({
 
       // セッションを再取得
       const { data } = await supabase.auth.getSession();
-      logDebug("トークン検証後セッション取得", { hasSession: !!data.session });
+      logDebug("トークン検証後セッション取得", {
+        hasSession: !!data.session,
+        accessToken: data.session?.access_token ? "存在" : "なし",
+        userId: data.session?.user?.id,
+      });
       authResult = data as AuthData;
     }
 
     // セッションが取得できているか確認
     if (!authResult.session) {
-      logDebug("セッション確立失敗");
+      logDebug("セッション確立失敗", {
+        authResultKeys: Object.keys(authResult),
+        cookiesExist: !!(await cookies()).getAll().length,
+      });
       throw new Error("セッションの確立に失敗しました。もう一度ログインを試みてください。");
     }
 
     const userId = authResult.session.user.id;
-    logDebug("認証成功", { userId });
+    logDebug("認証成功", {
+      userId,
+      accessToken: authResult.session.access_token ? "存在" : "なし",
+      expiresAt: authResult.session.expires_at,
+      metadata: authResult.session.user.user_metadata,
+    });
 
     // もし匿名IDが提供されていれば匿名評価をマージ
     if (anonymousId) {
@@ -423,6 +457,7 @@ export async function confirmAuth({
       hasUser: !!user,
       userType: user?.user_metadata?.user_type,
       userId: user?.id,
+      email: user?.email,
     });
 
     if (user && user.user_metadata?.user_type === "barista" && user.id) {
@@ -434,11 +469,34 @@ export async function confirmAuth({
     logDebug("リダイレクト先決定", { redirectPath });
 
     // クライアントの Cookie をリフレッシュするために明示的に保存
-    const refreshResult = await supabase.auth.refreshSession();
-    logDebug("セッションリフレッシュ結果", {
-      success: !!refreshResult.data.session,
-      userId: refreshResult.data.session?.user?.id,
-    });
+    logDebug("セッションリフレッシュ開始");
+    try {
+      const refreshResult = await supabase.auth.refreshSession();
+
+      // 現在のCookieの状態を確認
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+
+      logDebug("セッションリフレッシュ結果", {
+        success: !!refreshResult.data.session,
+        userId: refreshResult.data.session?.user?.id,
+        cookieCount: allCookies.length,
+        cookieNames: allCookies.map((c) => c.name),
+      });
+
+      // セッションが確立されたか再確認
+      const { data: finalSessionCheck } = await supabase.auth.getSession();
+      logDebug("最終セッション確認", {
+        hasSession: !!finalSessionCheck.session,
+        userId: finalSessionCheck.session?.user?.id,
+        expiresAt: finalSessionCheck.session?.expires_at,
+      });
+    } catch (refreshError) {
+      logDebug("セッションリフレッシュエラー", {
+        error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+      });
+      // リフレッシュエラーは致命的ではない
+    }
   } catch (e) {
     success = false;
     error = e instanceof Error ? e.message : "認証処理中に不明なエラーが発生しました";

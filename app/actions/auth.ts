@@ -16,7 +16,10 @@ type AuthResult = {
   success: boolean;
   error?: string;
   userId?: string;
+  redirectPath?: string;
   redirectTo?: string;
+  message?: string;
+  baseUrl?: string;
 };
 
 /**
@@ -59,7 +62,7 @@ export async function signInWithMagicLink(formData: {
       redirectTo: "/login?message=マジックリンクをメールで送信しました。メールをご確認ください。",
     };
   } catch (error) {
-    console.error("マジックリンク認証エラー:", error);
+    console.error("マジックリンク送信中にエラーが発生しました:", error);
     return { success: false, error: "マジックリンク送信中にエラーが発生しました" };
   }
 }
@@ -105,7 +108,7 @@ export async function signInWithGoogle(formData: {
 
     return { success: false, error: "リダイレクトURLが取得できませんでした" };
   } catch (error) {
-    console.error("Google認証エラー:", error);
+    console.error("Google認証中にエラーが発生しました:", error);
     return { success: false, error: "Google認証中にエラーが発生しました" };
   }
 }
@@ -202,7 +205,24 @@ export async function exchangeCodeForSession(code: string) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error("セッションコード交換エラー:", error);
+      // flow_state_not_foundエラーが発生した場合、すでにコード交換されている可能性がある
+      // セッションが確立しているか確認する
+      if (error.code === "flow_state_not_found") {
+        // 現在のセッションとユーザー情報を取得して確認
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        if (sessionData.session) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            return {
+              success: true,
+              userId: userData.user.id,
+              userMetadata: userData.user.user_metadata,
+            };
+          }
+        }
+      }
+
       return { success: false, error: error.message };
     }
 
@@ -216,280 +236,140 @@ export async function exchangeCodeForSession(code: string) {
     } = await supabase.auth.getUser();
 
     if (!session || !user) {
-      console.error("セッションコード交換後のセッション/ユーザー取得失敗");
       return { success: false, error: "認証後のセッション取得に失敗しました" };
     }
 
-    console.log("セッションコード交換成功: ユーザーID=", user.id);
-
-    // キャッシュ更新はconfirmAuth関数内で行うため、ここでは行わない
-
     return { success: true, userId: user.id, userMetadata: user.user_metadata };
   } catch (error) {
-    console.error("セッションコード交換エラー(例外):", error);
+    console.error("セッションコードの交換エラー:", error);
     return { success: false, error: "セッションコードの交換中にエラーが発生しました" };
   }
 }
 
 /**
- * ユーザープロフィールの確認と作成（トリガーのフォールバック）
+ * メールリンク認証を確認します
  */
-async function ensureUserProfile(
-  supabase: SupabaseClient,
-  userId: string,
-  userMetadata?: Record<string, any>
-) {
-  try {
-    console.log(`プロファイル確認開始: userId=${userId}`);
-
-    // プロフィールが既に存在するか確認
-    const { data: existingProfile, error: checkError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    // エラーログ（NotFoundは除く）
-    if (checkError && checkError.code !== "PGRST116") {
-      console.error("プロフィール確認エラー:", checkError);
-    }
-
-    // プロフィールが存在しない場合のみ作成
-    if (!existingProfile) {
-      console.log("トリガーで作成されていないプロフィールを手動作成します");
-
-      const userType = userMetadata?.user_type || "customer";
-      let displayName = userMetadata?.display_name || userMetadata?.name;
-
-      // displayNameが取得できない場合は、ユーザーIDか空の値を使用
-      if (!displayName) {
-        // ユーザーのメールアドレスを取得
-        const { data: userData, error: userError } = await supabase
-          .from("auth.users")
-          .select("email")
-          .eq("id", userId)
-          .single();
-
-        if (!userError && userData?.email) {
-          displayName = userData.email.split("@")[0];
-        } else {
-          displayName = userId.substring(0, 8);
-        }
-      }
-
-      // より詳細なプロフィールデータを準備
-      const profileData = {
-        user_id: userId,
-        type: userType,
-        display_name: displayName,
-        icon_url: userMetadata?.avatar_url || "",
-        bio: "",
-        shop_name: userType === "barista" ? userMetadata?.shop_name || "カフェ" : null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      // トリガーから5秒経過してもプロファイルが作成されていない場合は手動で作成
-      const { error } = await supabase.from("profiles").insert(profileData);
-
-      if (error) {
-        // プロファイルが既に存在する場合（競合状態）は成功とみなす
-        if (error.code === "23505") {
-          // 一意制約違反のエラーコード
-          console.log(`プロファイルは既に存在しています（競合）: ${userId}`);
-          return true;
-        }
-
-        console.error("手動プロフィール作成エラー:", error);
-
-        // 再度試行（SQL実行エラーの場合）
-        if (error.code !== "23505") {
-          console.log("プロファイル作成を再試行します...");
-          const retryResult = await supabase.from("profiles").insert(profileData);
-          if (retryResult.error) {
-            console.error("プロファイル作成再試行エラー:", retryResult.error);
-            return false;
-          }
-        }
-      }
-
-      console.log(`新しいプロフィールを手動作成しました: ${userId}, タイプ: ${userType}`);
-      return true;
-    }
-
-    console.log(`既存のプロフィールが見つかりました: ${userId}`);
-    return true;
-  } catch (error) {
-    console.error("プロフィール作成/確認中の例外:", error);
-    return false;
-  }
-}
-
-/**
- * 認証確認処理
- * auth/confirm/route.tsから移行したロジック
- */
-export async function confirmAuth(params: {
-  tokenHash?: string | null;
-  code?: string | null;
-  type?: string | null;
-  anonymousId?: string | null;
-}) {
-  const { tokenHash, code, type = "email", anonymousId } = params;
-  let verifyResult = {
-    success: false,
-    error: null as string | null,
-    userId: null as string | null,
-    userMetadata: null as any,
-  };
-
-  // デバッグログ - 受け取ったパラメータを表示
-  console.log("認証パラメータ:", {
-    tokenHash: tokenHash ? "存在" : "なし",
-    code: code ? "存在" : "なし",
-    type,
-    anonymousId: anonymousId ? "存在" : "なし",
-  });
+export async function confirmAuth({
+  tokenHash,
+  code,
+  type,
+  anonymousId,
+}: {
+  tokenHash?: string;
+  code?: string;
+  type?: string;
+  anonymousId: string | null;
+}): Promise<AuthResult> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const supabase = await createClient();
+  let success = false;
+  let error: string | null = null;
+  let redirectPath = "/";
+  let message = "";
 
   try {
-    // token_hashがある場合はその検証を試みる
-    if (tokenHash && type) {
-      console.log(`OTP検証を実行: type=${type}`);
-      const result = await verifyOtp(type, tokenHash);
-      verifyResult = {
-        success: result.success,
-        error: result.error || null,
-        userId: null,
-        userMetadata: null,
-      };
-      console.log(`OTP検証結果: success=${result.success}, error=${result.error || "なし"}`);
+    // トークンまたはコードが存在するかチェック
+    if ((!tokenHash && !code) || (code === "null" && tokenHash === "null")) {
+      throw new Error("認証コードが欠落しています。リンクをもう一度試してください。");
     }
-    // codeがある場合はセッションの検証を試みる
-    else if (code) {
-      console.log(`セッションコード検証を実行: code=${code.substring(0, 8)}...`);
-      const result = await exchangeCodeForSession(code);
-      verifyResult = {
-        success: result.success,
-        error: result.error || null,
-        userId: result.userId || null,
-        userMetadata: result.userMetadata || null,
-      };
-      console.log(
-        `セッションコード検証結果: success=${result.success}, error=${result.error || "なし"}`
-      );
+
+    // 現在のセッションをチェック
+    const { data: existingSessionData } = await supabase.auth.getSession();
+    if (existingSessionData.session) {
+      success = true;
+      redirectPath = "/account";
+
+      // ユーザータイプがbaristaの場合、バリスタページへリダイレクト
+      const user = existingSessionData.session.user;
+      if (user && user.user_metadata?.user_type === "barista" && user.id) {
+        redirectPath = `/barista/${user.id}`;
+      }
+
+      message = "既にログインしています。";
+      return { success, error: "", redirectPath, message, baseUrl };
+    }
+
+    // 交換処理の結果を保持する変数
+    type AuthData = {
+      session: {
+        user: {
+          id: string;
+          user_metadata?: Record<string, unknown>;
+        };
+      } | null;
+    };
+
+    let authResult: AuthData;
+
+    if (code) {
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (exchangeError) {
+        throw exchangeError;
+      }
+
+      authResult = data as AuthData;
     } else {
-      console.error("No valid verification parameters found");
-      verifyResult.error = "有効な認証パラメータが見つかりません";
-    }
-  } catch (error) {
-    console.error("Error during verification:", error);
-    verifyResult.error = "認証処理中にエラーが発生しました";
-  }
+      // 古い方式のトークンHash認証（現在はほとんど使われない）
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: type === "recovery" ? "recovery" : "email",
+        token_hash: tokenHash as string,
+      });
 
-  // 検証が成功した場合
-  if (verifyResult.success) {
-    // ユーザー情報を取得
-    const supabase = await createClient();
-
-    // ユーザーIDが得られなかった場合は再取得
-    let userId = verifyResult.userId;
-    let userMetadata = verifyResult.userMetadata;
-
-    if (!userId) {
-      // 認証が成功したら改めてセッションを取得
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        console.error("セッションが取得できませんでした");
-        return {
-          success: false,
-          redirectPath: "/login",
-          error: "セッションの取得に失敗しました。もう一度ログインしてください。",
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "",
-        };
+      if (verifyError) {
+        throw verifyError;
       }
 
-      console.log(
-        "セッション取得成功:",
-        session.access_token ? "アクセストークンあり" : "アクセストークンなし"
-      );
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      console.log("認証成功: ユーザー情報", user ? `ID: ${user.id}` : "ユーザー情報なし");
-
-      if (!user) {
-        console.error("ユーザー情報が取得できませんでした");
-        return {
-          success: false,
-          redirectPath: "/login",
-          error: "ユーザー情報の取得に失敗しました。もう一度ログインしてください。",
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "",
-        };
-      }
-
-      userId = user.id;
-      userMetadata = user.user_metadata;
+      // セッションを再取得
+      const { data } = await supabase.auth.getSession();
+      authResult = data as AuthData;
     }
 
-    // プロフィールの存在確認・作成（確実に作成するため、遅延して2回試行する）
-    console.log("プロファイル確認開始...");
-    const profileResult = await ensureUserProfile(supabase, userId, userMetadata);
-
-    if (!profileResult) {
-      console.log("最初のプロファイル作成が失敗しました。1秒後に再試行します...");
-      // 少し待ってから再試行（トリガーが遅延実行される可能性を考慮）
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 2回目の試行
-      await ensureUserProfile(supabase, userId, userMetadata);
+    // セッションが取得できているか確認
+    if (!authResult.session) {
+      throw new Error("セッションの確立に失敗しました。もう一度ログインを試みてください。");
     }
 
-    console.log("プロフィール確認完了");
+    const userId = authResult.session.user.id;
 
-    // 匿名データの移行（もし匿名IDがあれば）
+    // もし匿名IDが提供されていれば匿名評価をマージ
     if (anonymousId) {
       try {
-        console.log(`匿名データ移行開始: anonymousId=${anonymousId}`);
-        const { data: migrateResult } = await supabase.functions.invoke("migrate-anonymous-data", {
-          body: { anonymous_id: anonymousId, user_id: userId },
-        });
-        console.log("匿名データ移行結果:", migrateResult);
-      } catch (error) {
-        console.error("匿名データ移行エラー:", error);
+        const { error: mergeError } = await supabase
+          .from("evaluations")
+          .update({ user_id: userId })
+          .eq("anonymous_id", anonymousId)
+          .is("user_id", null);
+
+        if (mergeError) {
+          // ここではマージの失敗を致命的なエラーとしては扱わない
+        }
+      } catch (_) {
+        // 例外は無視
       }
     }
 
     // リダイレクト先を決定
-    let redirectPath = "/account";
+    redirectPath = "/account";
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
 
-    // ユーザータイプがバリスタの場合はバリスタページへ
-    if (userMetadata?.user_type === "barista" && userId) {
-      redirectPath = `/barista/${userId}`;
+    if (user && user.user_metadata?.user_type === "barista" && user.id) {
+      redirectPath = `/barista/${user.id}`;
     }
 
-    console.log(`リダイレクト先: ${redirectPath}`);
+    success = true;
+    message = "認証に成功しました。ログインしました。";
 
-    // 処理成功情報を含めて返却
-    return {
-      success: true,
-      redirectPath,
-      message: "認証に成功しました。ログインしました。",
-      baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "",
-    };
+    // クライアントの Cookie をリフレッシュするために明示的に保存
+    await supabase.auth.refreshSession();
+  } catch (e) {
+    success = false;
+    error = e instanceof Error ? e.message : "認証処理中に不明なエラーが発生しました";
+    redirectPath = "/login";
   }
 
-  // 認証失敗
-  return {
-    success: false,
-    redirectPath: "/error",
-    error: verifyResult.error || "認証に失敗しました",
-    baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "",
-  };
+  return { success, error: error || "", redirectPath, message, baseUrl };
 }
 
 /**
@@ -535,7 +415,7 @@ export async function signUpWithEmail(
     }
 
     // メタデータを準備（トリガー関数で使用される）
-    const metadata: Record<string, any> = {
+    const metadata: Record<string, string> = {
       user_type: userType,
       display_name: displayName,
     };

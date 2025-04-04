@@ -6,26 +6,41 @@ import HeaderContainer from "./components/layout/header-container";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "ブラービ",
+  title: {
+    template: "%s | ブラービ",
+    default: "ブラービ",
+  },
   description: "ブラービは、バリスタ起点でコーヒーを飲みにいくような体験を提供するサービスです。",
   applicationName: "bra-B",
   authors: [{ name: "bra-B Team" }],
-  keywords: ["バリスタ", "コーヒー", "評価", "チップ", "ファン"],
+  keywords: ["バリスタ", "コーヒー", "カフェ", "評価"],
   creator: "bra-B Team",
   publisher: "bra-B",
   robots: {
     index: true,
     follow: true,
+  },
+  openGraph: {
+    siteName: "bra-B",
+    title: "bra-B",
+    description: "bra-Bは、バリスタ起点でコーヒーを飲みにいくような体験を提供するサービスです。",
+    type: "website",
+    locale: "ja_JP",
+  },
+  twitter: {
+    title: "bra-B",
+    description: "bra-Bは、バリスタ起点でコーヒーを飲みにいくような体験を提供するサービスです。",
+    card: "summary_large_image",
   },
 };
 
@@ -40,7 +55,7 @@ export const viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

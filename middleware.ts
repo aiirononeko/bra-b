@@ -2,15 +2,40 @@ import { createClient } from "@/utils/supabase/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// デバッグ関数
+function logDebug(message: string, data?: any) {
+  console.log(`[ROOT_MIDDLEWARE_DEBUG] ${message}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
 export async function middleware(request: NextRequest) {
   try {
+    // URL情報を記録
+    const url = request.nextUrl.clone();
+    logDebug(`ミドルウェア処理開始: ${url.pathname}`, {
+      searchParams: Object.fromEntries(url.searchParams.entries()),
+      host: url.host,
+      origin: url.origin,
+    });
+
     // Supabaseクライアントの作成
     const { supabase, response } = await createClient(request);
+
+    if (!supabase) {
+      logDebug("Supabaseクライアント作成失敗");
+      return NextResponse.next();
+    }
 
     // セッションを取得
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
+    logDebug("セッション状態", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      userMetadata: session?.user?.user_metadata,
+    });
 
     // next/data のリクエスト、またはTrpcリクエストの場合は何もせずにパス
     if (
@@ -18,6 +43,7 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith("/api/trpc") ||
       request.nextUrl.pathname.startsWith("/api/healthz")
     ) {
+      logDebug("システムパスはスキップ");
       return response;
     }
 
@@ -27,6 +53,7 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname === "/login" ||
       request.nextUrl.pathname === "/signup"
     ) {
+      logDebug("認証関連パスは常に許可");
       return response;
     }
 
@@ -40,6 +67,7 @@ export async function middleware(request: NextRequest) {
       "/customer/barista",
       "/customer/shop",
       "/customer/evaluation",
+      "/debug",
     ];
 
     // パスの先頭部分が公開ルートに一致するか
@@ -52,6 +80,7 @@ export async function middleware(request: NextRequest) {
     });
 
     if (isPublicRoute) {
+      logDebug("公開ルートへのアクセスを許可", { path: request.nextUrl.pathname });
       return response;
     }
 
@@ -62,6 +91,7 @@ export async function middleware(request: NextRequest) {
     ) {
       if (!session) {
         // 未認証の場合はログインページにリダイレクト
+        logDebug("認証が必要なパスへのアクセスを拒否", { path: request.nextUrl.pathname });
         return NextResponse.redirect(new URL("/login", request.url));
       }
 
@@ -71,6 +101,12 @@ export async function middleware(request: NextRequest) {
         const currentUserId = session.user?.id;
         const userType = session.user?.user_metadata?.user_type;
 
+        logDebug("バリスタページのアクセス制御", {
+          requestedId: requestedBaristaId,
+          currentId: currentUserId,
+          userType,
+        });
+
         // リクエストされたバリスタIDが現在のユーザーIDと一致しない、かつユーザータイプがバリスタでない場合
         if (
           requestedBaristaId !== currentUserId &&
@@ -78,6 +114,7 @@ export async function middleware(request: NextRequest) {
           !isAdmin(session.user?.email)
         ) {
           // アクセス拒否
+          logDebug("バリスタページへのアクセスを拒否");
           return NextResponse.redirect(new URL("/account", request.url));
         }
       }
@@ -86,19 +123,22 @@ export async function middleware(request: NextRequest) {
     // 管理者ルートのアクセス制御
     if (request.nextUrl.pathname.startsWith("/admin")) {
       if (!session) {
+        logDebug("管理者ページへの未認証アクセスを拒否");
         return NextResponse.redirect(new URL("/login", request.url));
       }
 
       // 管理者でない場合はアクセス拒否
       if (!isAdmin(session.user?.email)) {
+        logDebug("非管理者による管理者ページへのアクセスを拒否");
         return NextResponse.redirect(new URL("/account", request.url));
       }
     }
 
+    logDebug("ミドルウェア処理完了: アクセス許可");
     return response;
   } catch (e) {
-    console.error("middleware エラー:", e);
     // エラーが発生した場合、リクエストを続行
+    logDebug("ミドルウェアエラー", { error: e });
     return NextResponse.next();
   }
 }
@@ -107,6 +147,7 @@ export async function middleware(request: NextRequest) {
 function isAdmin(email?: string): boolean {
   if (!email) return false;
   const adminEmails = (process.env.ADMIN_EMAILS || "").split(",");
+  logDebug("管理者権限チェック", { email, isAdmin: adminEmails.includes(email) });
   return adminEmails.includes(email);
 }
 

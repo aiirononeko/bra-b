@@ -22,6 +22,32 @@ type AuthResult = {
   baseUrl?: string;
 };
 
+// デバッグ関数
+function logDebug(message: string, data?: any) {
+  console.log(`[AUTH_DEBUG] ${message}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
+// 共通の関数でURLを生成
+function getBaseURL() {
+  const url =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_VERCEL_URL ||
+    "http://localhost:3000";
+
+  // httpから始まらない場合はhttpsを追加
+  const baseUrl = url.startsWith("http") ? url : `https://${url}`;
+
+  logDebug(`Base URL: ${baseUrl}`);
+  // 環境変数をログに出力
+  logDebug(`ENV Variables:`, {
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+    NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
+    NODE_ENV: process.env.NODE_ENV,
+  });
+
+  return baseUrl;
+}
+
 /**
  * マジックリンクでのサインイン/サインアップ
  */
@@ -30,6 +56,7 @@ export async function signInWithMagicLink(formData: {
   userType?: "barista" | "customer";
   displayName?: string;
 }): Promise<AuthResult> {
+  logDebug("signInWithMagicLink開始", formData);
   const supabase = await createClient();
   const { email, userType = "customer", displayName } = formData;
 
@@ -37,14 +64,20 @@ export async function signInWithMagicLink(formData: {
   const cookieStore = await cookies();
   const anonymousId = cookieStore.get("anonymous_id")?.value;
 
+  // 環境変数を確認
+  const baseUrl = getBaseURL();
+
   try {
     // リダイレクト先の設定
     const redirectPath = userType === "barista" ? "/barista" : "/";
+    const redirectUrl = `${baseUrl}/auth/confirm?next=${redirectPath}`;
+
+    logDebug(`リダイレクトURL: ${redirectUrl}`);
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555"}/auth/confirm?next=${redirectPath}`,
+        emailRedirectTo: redirectUrl,
         data: {
           user_type: userType,
           display_name: displayName || email.split("@")[0],
@@ -54,15 +87,17 @@ export async function signInWithMagicLink(formData: {
     });
 
     if (error) {
+      logDebug("マジックリンクエラー", { error: error.message });
       return { success: false, error: error.message };
     }
 
+    logDebug("マジックリンク送信成功");
     return {
       success: true,
       redirectTo: "/login?message=マジックリンクをメールで送信しました。メールをご確認ください。",
     };
   } catch (error) {
-    console.error("マジックリンク送信中にエラーが発生しました:", error);
+    logDebug("マジックリンク例外", { error });
     return { success: false, error: "マジックリンク送信中にエラーが発生しました" };
   }
 }
@@ -81,6 +116,8 @@ export async function signInWithGoogle(formData: {
   const cookieStore = await cookies();
   const anonymousId = cookieStore.get("anonymous_id")?.value;
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555";
+
   try {
     // リダイレクト先の設定
     const redirectPath = userType === "barista" ? "/barista" : "/";
@@ -88,7 +125,7 @@ export async function signInWithGoogle(formData: {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555"}/auth/confirm?next=${redirectPath}`,
+        redirectTo: `${baseUrl}/auth/confirm?next=${redirectPath}`,
         queryParams: {
           user_type: userType,
           display_name: displayName,
@@ -260,7 +297,16 @@ export async function confirmAuth({
   type?: string;
   anonymousId: string | null;
 }): Promise<AuthResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555";
+  // パラメータをログ
+  logDebug("confirmAuth開始", {
+    tokenHash: tokenHash ? "存在" : "なし",
+    code: code ? "存在" : "なし",
+    type,
+  });
+
+  // 環境変数を確認
+  const baseUrl = getBaseURL();
+
   const supabase = await createClient();
   let success = false;
   let error: string | null = null;
@@ -270,11 +316,17 @@ export async function confirmAuth({
   try {
     // トークンまたはコードが存在するかチェック
     if ((!tokenHash && !code) || (code === "null" && tokenHash === "null")) {
+      logDebug("認証コード欠落");
       throw new Error("認証コードが欠落しています。リンクをもう一度試してください。");
     }
 
     // 現在のセッションをチェック
     const { data: existingSessionData } = await supabase.auth.getSession();
+    logDebug("既存セッション確認", {
+      hasSession: !!existingSessionData.session,
+      user: existingSessionData.session?.user?.id,
+    });
+
     if (existingSessionData.session) {
       success = true;
       redirectPath = "/account";
@@ -286,6 +338,7 @@ export async function confirmAuth({
       }
 
       message = "既にログインしています。";
+      logDebug("既存セッションあり、リダイレクト", { redirectPath });
       return { success, error: "", redirectPath, message, baseUrl };
     }
 
@@ -302,39 +355,48 @@ export async function confirmAuth({
     let authResult: AuthData;
 
     if (code) {
+      logDebug("コード交換開始", { code });
       const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
       if (exchangeError) {
+        logDebug("コード交換エラー", { error: exchangeError.message });
         throw exchangeError;
       }
 
+      logDebug("コード交換成功", { hasSession: !!data.session });
       authResult = data as AuthData;
     } else {
       // 古い方式のトークンHash認証（現在はほとんど使われない）
+      logDebug("トークンHash認証開始");
       const { error: verifyError } = await supabase.auth.verifyOtp({
         type: type === "recovery" ? "recovery" : "email",
         token_hash: tokenHash as string,
       });
 
       if (verifyError) {
+        logDebug("トークン検証エラー", { error: verifyError.message });
         throw verifyError;
       }
 
       // セッションを再取得
       const { data } = await supabase.auth.getSession();
+      logDebug("トークン検証後セッション取得", { hasSession: !!data.session });
       authResult = data as AuthData;
     }
 
     // セッションが取得できているか確認
     if (!authResult.session) {
+      logDebug("セッション確立失敗");
       throw new Error("セッションの確立に失敗しました。もう一度ログインを試みてください。");
     }
 
     const userId = authResult.session.user.id;
+    logDebug("認証成功", { userId });
 
     // もし匿名IDが提供されていれば匿名評価をマージ
     if (anonymousId) {
       try {
+        logDebug("匿名評価マージ開始", { anonymousId });
         const { error: mergeError } = await supabase
           .from("evaluations")
           .update({ user_id: userId })
@@ -342,7 +404,10 @@ export async function confirmAuth({
           .is("user_id", null);
 
         if (mergeError) {
+          logDebug("匿名評価マージエラー", { error: mergeError.message });
           // ここではマージの失敗を致命的なエラーとしては扱わない
+        } else {
+          logDebug("匿名評価マージ成功");
         }
       } catch (_) {
         // 例外は無視
@@ -354,21 +419,34 @@ export async function confirmAuth({
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
 
+    logDebug("ユーザー情報取得", {
+      hasUser: !!user,
+      userType: user?.user_metadata?.user_type,
+      userId: user?.id,
+    });
+
     if (user && user.user_metadata?.user_type === "barista" && user.id) {
       redirectPath = `/barista/${user.id}`;
     }
 
     success = true;
     message = "認証に成功しました。ログインしました。";
+    logDebug("リダイレクト先決定", { redirectPath });
 
     // クライアントの Cookie をリフレッシュするために明示的に保存
-    await supabase.auth.refreshSession();
+    const refreshResult = await supabase.auth.refreshSession();
+    logDebug("セッションリフレッシュ結果", {
+      success: !!refreshResult.data.session,
+      userId: refreshResult.data.session?.user?.id,
+    });
   } catch (e) {
     success = false;
     error = e instanceof Error ? e.message : "認証処理中に不明なエラーが発生しました";
     redirectPath = "/login";
+    logDebug("認証エラー", { error });
   }
 
+  logDebug("confirmAuth完了", { success, redirectPath });
   return { success, error: error || "", redirectPath, message, baseUrl };
 }
 
@@ -425,12 +503,14 @@ export async function signUpWithEmail(
       metadata.shop_name = shopName;
     }
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5555";
+
     // サインアップ（メールリンク認証）
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/confirm`,
+        emailRedirectTo: `${baseUrl}/auth/confirm`,
         data: metadata, // ユーザーメタデータを設定
       },
     });

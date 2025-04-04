@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -66,6 +67,7 @@ export default async function RootLayout({
         <HeaderContainer />
         <main className="min-h-[calc(100vh-64px)]">{children}</main>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

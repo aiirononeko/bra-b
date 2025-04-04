@@ -1,145 +1,339 @@
 -- Seed data for Bra-B application
 
--- auth.usersに直接INSERTするのではなく、プロファイルを作成するためのトリガーファンクションや
--- トリガーを通じて間接的に作成する方法を採用します
--- この例では、既存のユーザーを検証し、存在しない場合は別の方法（管理コンソールやサインアップAPI）で
--- 実際のユーザーを作成する必要があることを示唆しています
+-- auth.usersテーブルにユーザーを追加すると、handle_new_user()トリガー関数によって
+-- 自動的にプロフィールが作成されます
 
--- Profile data
+-- テスト・開発用ユーザーデータ
 DO $$
 BEGIN
-  -- まず既存のauth.usersを確認し、存在しない場合はメッセージを表示
+  -- 管理者ユーザー
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000001') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000001 が存在しません。このサンプルデータは開発環境用です。';
-    -- 開発環境ではダミーユーザーを作成しますが、本番環境では実際のユーザー登録プロセスを使用してください
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000001', 'admin@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000001', 
+      'admin@example.com',
+      jsonb_build_object(
+        'user_type', 'admin',
+        'display_name', 'Admin',
+        'avatar_url', 'https://randomuser.me/api/portraits/men/75.jpg'
+      )
+    );
   END IF;
 
+  -- バリスタ1
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000002') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000002 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000002', 'barista1@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000002', 
+      'barista1@example.com',
+      jsonb_build_object(
+        'user_type', 'barista',
+        'display_name', 'コーヒー太郎',
+        'avatar_url', 'https://randomuser.me/api/portraits/men/32.jpg',
+        'shop_name', 'コーヒーハウス青山'
+      )
+    );
   END IF;
 
+  -- バリスタ2
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000003') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000003 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000003', 'barista2@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000003', 
+      'barista2@example.com',
+      jsonb_build_object(
+        'user_type', 'barista',
+        'display_name', 'ラテ花子',
+        'avatar_url', 'https://randomuser.me/api/portraits/women/44.jpg',
+        'shop_name', 'カフェ渋谷'
+      )
+    );
   END IF;
 
+  -- バリスタ3
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000004') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000004 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000004', 'barista3@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000004', 
+      'barista3@example.com',
+      jsonb_build_object(
+        'user_type', 'barista',
+        'display_name', '山田コーヒー',
+        'avatar_url', 'https://randomuser.me/api/portraits/men/67.jpg',
+        'shop_name', 'ロースターズカフェ'
+      )
+    );
   END IF;
 
+  -- 顧客1
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000005') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000005 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000005', 'customer1@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000005', 
+      'customer1@example.com',
+      jsonb_build_object(
+        'user_type', 'customer',
+        'display_name', 'コーヒー好き',
+        'avatar_url', 'https://randomuser.me/api/portraits/women/28.jpg'
+      )
+    );
   END IF;
 
+  -- 顧客2
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000006') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000006 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000006', 'customer2@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000006', 
+      'customer2@example.com',
+      jsonb_build_object(
+        'user_type', 'customer',
+        'display_name', 'カフェ巡り人',
+        'avatar_url', 'https://randomuser.me/api/portraits/men/53.jpg'
+      )
+    );
   END IF;
 
+  -- 匿名ユーザー
   IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '00000000-0000-0000-0000-000000000000') THEN
-    RAISE NOTICE 'ユーザーID 00000000-0000-0000-0000-000000000000 が存在しません。このサンプルデータは開発環境用です。';
-    INSERT INTO auth.users (id, email) 
-    VALUES ('00000000-0000-0000-0000-000000000000', 'anonymous@example.com');
+    INSERT INTO auth.users (
+      id, 
+      email,
+      raw_user_meta_data
+    ) 
+    VALUES (
+      '00000000-0000-0000-0000-000000000000', 
+      'anonymous@example.com',
+      jsonb_build_object(
+        'user_type', 'anonymous',
+        'display_name', 'ゲスト',
+        'avatar_url', 'https://randomuser.me/api/portraits/lego/1.jpg'
+      )
+    );
   END IF;
 END $$;
 
--- プロフィールデータの挿入
-INSERT INTO public.profiles (id, user_id, type, display_name, icon_url, bio, shop_name, years_of_experience, prefecture, google_maps_link)
-VALUES 
-  (
-    '11111111-1111-1111-1111-111111111111', 
-    '00000000-0000-0000-0000-000000000001', 
-    'admin', 
-    'Admin', 
-    'https://randomuser.me/api/portraits/men/75.jpg', 
-    '管理者アカウントです。', 
-    NULL,
-    NULL,
-    NULL,
-    NULL
-  ),
-  (
-    '22222222-2222-2222-2222-222222222222', 
-    '00000000-0000-0000-0000-000000000002', 
-    'barista', 
-    'コーヒー太郎', 
-    'https://randomuser.me/api/portraits/men/32.jpg', 
-    '丁寧な一杯を心がけています。コーヒーの魅力を多くの人に伝えたいです。', 
-    'コーヒーハウス青山',
-    5,
-    '東京都',
-    'https://goo.gl/maps/example1'
-  ),
-  (
-    '33333333-3333-3333-3333-333333333333', 
-    '00000000-0000-0000-0000-000000000003', 
-    'barista', 
-    'ラテ花子', 
-    'https://randomuser.me/api/portraits/women/44.jpg', 
-    'ラテアートが得意です。皆さんに素敵なひとときを提供します。', 
-    'カフェ渋谷',
-    3,
-    '東京都',
-    'https://goo.gl/maps/example2'
-  ),
-  (
-    '44444444-4444-4444-4444-444444444444', 
-    '00000000-0000-0000-0000-000000000004', 
-    'barista', 
-    '山田コーヒー', 
-    'https://randomuser.me/api/portraits/men/67.jpg', 
-    '20年のバリスタ経験があります。スペシャルティコーヒーが専門です。', 
-    'ロースターズカフェ',
-    20,
-    '大阪府',
-    'https://goo.gl/maps/example3'
-  ),
-  (
-    '55555555-5555-5555-5555-555555555555', 
-    '00000000-0000-0000-0000-000000000005', 
-    'customer', 
-    'コーヒー好き', 
-    'https://randomuser.me/api/portraits/women/28.jpg', 
-    'コーヒーが大好きで、色々なカフェを巡っています。', 
-    NULL,
-    NULL,
-    NULL,
-    NULL
-  ),
-  (
-    '66666666-6666-6666-6666-666666666666', 
-    '00000000-0000-0000-0000-000000000006', 
-    'customer', 
-    'カフェ巡り人', 
-    'https://randomuser.me/api/portraits/men/53.jpg', 
-    'カフェ巡りが趣味です。素敵なバリスタさんを応援しています。', 
-    NULL,
-    NULL,
-    NULL,
-    NULL
-  );
+-- プロフィールを強制的に確実に作成（トリガーがうまく動かない場合のフォールバック）
+DO $$
+BEGIN
+  -- バリスタ1のプロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000002') THEN
+    INSERT INTO public.profiles (
+      id,
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio,
+      shop_name,
+      years_of_experience,
+      prefecture,
+      google_maps_link
+    ) VALUES (
+      '22222222-2222-2222-2222-222222222222',
+      '00000000-0000-0000-0000-000000000002',
+      'barista',
+      'コーヒー太郎',
+      'https://randomuser.me/api/portraits/men/32.jpg',
+      'コーヒーの魅力を多くの人に伝えたいです。',
+      'コーヒーハウス青山',
+      5,
+      '東京都',
+      'https://goo.gl/maps/example1'
+    );
+  ELSE
+    -- 既存のプロフィールのIDを更新
+    UPDATE public.profiles
+    SET id = '22222222-2222-2222-2222-222222222222'
+    WHERE user_id = '00000000-0000-0000-0000-000000000002';
+  END IF;
 
--- Anonymous profile for users not logged in
-INSERT INTO public.profiles (id, user_id, type, display_name, icon_url, bio, anonymous_id)
-VALUES (
-  '77777777-7777-7777-7777-777777777777',
-  '00000000-0000-0000-0000-000000000000',
-  'anonymous',
-  'ゲスト',
-  'https://randomuser.me/api/portraits/lego/1.jpg',
-  'ログインしていないユーザーです。',
-  'anonymous-default'
-);
+  -- バリスタ2のプロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000003') THEN
+    INSERT INTO public.profiles (
+      id,
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio,
+      shop_name,
+      years_of_experience,
+      prefecture,
+      google_maps_link
+    ) VALUES (
+      '33333333-3333-3333-3333-333333333333',
+      '00000000-0000-0000-0000-000000000003',
+      'barista',
+      'ラテ花子',
+      'https://randomuser.me/api/portraits/women/44.jpg',
+      'ラテアートが得意です。皆さんに素敵なひとときを提供します。',
+      'カフェ渋谷',
+      3,
+      '東京都',
+      'https://goo.gl/maps/example2'
+    );
+  ELSE
+    -- 既存のプロフィールのIDを更新
+    UPDATE public.profiles
+    SET id = '33333333-3333-3333-3333-333333333333'
+    WHERE user_id = '00000000-0000-0000-0000-000000000003';
+  END IF;
+
+  -- バリスタ3のプロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000004') THEN
+    INSERT INTO public.profiles (
+      id,
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio,
+      shop_name,
+      years_of_experience,
+      prefecture,
+      google_maps_link
+    ) VALUES (
+      '44444444-4444-4444-4444-444444444444',
+      '00000000-0000-0000-0000-000000000004',
+      'barista',
+      '山田コーヒー',
+      'https://randomuser.me/api/portraits/men/67.jpg',
+      '20年のバリスタ経験があります。スペシャルティコーヒーが専門です。',
+      'ロースターズカフェ',
+      20,
+      '大阪府',
+      'https://goo.gl/maps/example3'
+    );
+  ELSE
+    -- 既存のプロフィールのIDを更新
+    UPDATE public.profiles
+    SET id = '44444444-4444-4444-4444-444444444444'
+    WHERE user_id = '00000000-0000-0000-0000-000000000004';
+  END IF;
+
+  -- 顧客1のプロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000005') THEN
+    INSERT INTO public.profiles (
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio
+    ) VALUES (
+      '00000000-0000-0000-0000-000000000005',
+      'customer',
+      'コーヒー好き',
+      'https://randomuser.me/api/portraits/women/28.jpg',
+      'コーヒーが大好きで、色々なカフェを巡っています。'
+    );
+  END IF;
+
+  -- 顧客2のプロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000006') THEN
+    INSERT INTO public.profiles (
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio
+    ) VALUES (
+      '00000000-0000-0000-0000-000000000006',
+      'customer',
+      'カフェ巡り人',
+      'https://randomuser.me/api/portraits/men/53.jpg',
+      'カフェ巡りが趣味です。素敵なバリスタさんを応援しています。'
+    );
+  END IF;
+
+  -- 匿名ユーザープロフィール
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-000000000000') THEN
+    INSERT INTO public.profiles (
+      user_id,
+      type,
+      display_name,
+      icon_url,
+      bio,
+      anonymous_id
+    ) VALUES (
+      '00000000-0000-0000-0000-000000000000',
+      'anonymous',
+      'ゲスト',
+      'https://randomuser.me/api/portraits/lego/1.jpg',
+      'ログインしていないユーザーです。',
+      'anonymous-default'
+    );
+  END IF;
+END $$;
+
+-- バリスタカテゴリのサンプルデータを直接挿入
+INSERT INTO public.barista_categories (
+  barista_profile_id,
+  category,
+  confidence_score,
+  friendly_score,
+  delicious_score,
+  sophisticated_score,
+  entertainer_score
+)
+VALUES
+  (
+    '22222222-2222-2222-2222-222222222222',  -- バリスタ1
+    'friendly',                              -- 親しみやすいカテゴリ
+    0.7,                                     -- 信頼度
+    0.6,                                     -- 親しみやすいスコア
+    0.2,                                     -- 美味しい一杯スコア
+    0.1,                                     -- 洗練されたスコア
+    0.1                                      -- エンターテイナースコア
+  ),
+  (
+    '33333333-3333-3333-3333-333333333333',  -- バリスタ2
+    'delicious',                             -- 美味しい一杯カテゴリ
+    0.6,                                     -- 信頼度
+    0.2,                                     -- 親しみやすいスコア
+    0.5,                                     -- 美味しい一杯スコア
+    0.2,                                     -- 洗練されたスコア
+    0.1                                      -- エンターテイナースコア
+  ),
+  (
+    '44444444-4444-4444-4444-444444444444',  -- バリスタ3
+    'sophisticated',                         -- 洗練されたカテゴリ
+    0.8,                                     -- 信頼度
+    0.1,                                     -- 親しみやすいスコア
+    0.2,                                     -- 美味しい一杯スコア
+    0.6,                                     -- 洗練されたスコア
+    0.1                                      -- エンターテイナースコア
+  )
+ON CONFLICT (barista_profile_id) DO UPDATE SET
+  category = EXCLUDED.category,
+  confidence_score = EXCLUDED.confidence_score,
+  friendly_score = EXCLUDED.friendly_score,
+  delicious_score = EXCLUDED.delicious_score,
+  sophisticated_score = EXCLUDED.sophisticated_score,
+  entertainer_score = EXCLUDED.entertainer_score;
 
 -- Evaluation items
 INSERT INTO public.evaluation_items (id, name, is_active, sort_order)
@@ -214,43 +408,4 @@ VALUES
   ('cccccccc-1111-1111-1111-cccccccccccc', '00000000-0000-0000-0000-000000000005', '22222222-2222-2222-2222-222222222222'),
   ('cccccccc-2222-2222-2222-cccccccccccc', '00000000-0000-0000-0000-000000000005', '33333333-3333-3333-3333-333333333333'),
   ('cccccccc-3333-3333-3333-cccccccccccc', '00000000-0000-0000-0000-000000000006', '33333333-3333-3333-3333-333333333333'),
-  ('cccccccc-4444-4444-4444-cccccccccccc', '00000000-0000-0000-0000-000000000006', '44444444-4444-4444-4444-444444444444');
-
--- バリスタカテゴリのサンプルデータを直接挿入
-INSERT INTO public.barista_categories (
-  barista_profile_id,
-  category,
-  confidence_score,
-  friendly_score,
-  delicious_score,
-  sophisticated_score,
-  entertainer_score
-)
-VALUES
-  (
-    '22222222-2222-2222-2222-222222222222',  -- バリスタ1
-    'friendly',                              -- 親しみやすいカテゴリ
-    0.7,                                     -- 信頼度
-    0.6,                                     -- 親しみやすいスコア
-    0.2,                                     -- 美味しい一杯スコア
-    0.1,                                     -- 洗練されたスコア
-    0.1                                      -- エンターテイナースコア
-  ),
-  (
-    '33333333-3333-3333-3333-333333333333',  -- バリスタ2
-    'delicious',                             -- 美味しい一杯カテゴリ
-    0.6,                                     -- 信頼度
-    0.2,                                     -- 親しみやすいスコア
-    0.5,                                     -- 美味しい一杯スコア
-    0.2,                                     -- 洗練されたスコア
-    0.1                                      -- エンターテイナースコア
-  ),
-  (
-    '44444444-4444-4444-4444-444444444444',  -- バリスタ3
-    'sophisticated',                         -- 洗練されたカテゴリ
-    0.8,                                     -- 信頼度
-    0.1,                                     -- 親しみやすいスコア
-    0.2,                                     -- 美味しい一杯スコア
-    0.6,                                     -- 洗練されたスコア
-    0.1                                      -- エンターテイナースコア
-  ); 
+  ('cccccccc-4444-4444-4444-cccccccccccc', '00000000-0000-0000-0000-000000000006', '44444444-4444-4444-4444-444444444444'); 

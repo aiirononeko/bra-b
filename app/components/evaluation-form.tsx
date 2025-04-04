@@ -39,10 +39,10 @@ export default function EvaluationForm({
     setSubmitting(true);
 
     try {
-      // ログインしていない場合は認証ページにリダイレクト
+      // 未認証ユーザーの場合はログインページに遷移
       if (!authStatus.isLoggedIn) {
         router.push(
-          `/auth/login?message=${encodeURIComponent("評価を送信するにはログインが必要です。")}`
+          `/login?message=${encodeURIComponent("評価を送信するにはログインが必要です。")}`
         );
         return;
       }

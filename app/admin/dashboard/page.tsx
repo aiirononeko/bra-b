@@ -37,7 +37,7 @@ export default async function AdminDashboardPage() {
 
   if (!user) {
     // ログインしていない場合はログインページへリダイレクト
-    redirect("/auth/login?message=ダッシュボードにアクセスするにはログインが必要です");
+    redirect("/login?message=ダッシュボードにアクセスするにはログインが必要です");
   }
 
   // 管理者権限チェック (例えば管理者のプロフィールタイプが'admin'の場合)

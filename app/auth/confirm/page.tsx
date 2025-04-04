@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { confirmAuth } from "@/app/actions/auth";
+import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
   title: "認証中...",
@@ -32,11 +33,18 @@ export default async function ConfirmAuthPage({
 
   // 認証パラメータを取得
   const tokenHash = getStringParam(params.token_hash);
-  // Supabaseでは、codeまたはtokenという名前でパラメータが送信される場合がある
   const code = getStringParam(params.code) || getStringParam(params.token);
   const type = getStringParam(params.type) || "email";
+  const next = getStringParam(params.next) || "/";
 
-  // 直接認証処理を実行
+  console.log("認証確認ページ: パラメータ", {
+    tokenHash: tokenHash ? "存在" : "なし",
+    code: code ? "存在" : "なし",
+    type,
+    next,
+  });
+
+  // 認証処理を実行
   const result = await confirmAuth({
     tokenHash,
     code,
@@ -44,23 +52,56 @@ export default async function ConfirmAuthPage({
     anonymousId: null,
   });
 
-  if (result.success) {
-    // 成功時のリダイレクト
-    const redirectUrl = new URL(result.redirectPath, process.env.NEXT_PUBLIC_BASE_URL);
-    redirectUrl.searchParams.set("auth_success", "true");
-    redirectUrl.searchParams.set("message", result.message || "認証に成功しました");
+  console.log("認証結果:", { success: result.success, redirectPath: result.redirectPath });
 
-    redirect(redirectUrl.toString());
-  } else {
-    // エラー時のリダイレクト
-    const errorUrl = new URL("/error", process.env.NEXT_PUBLIC_BASE_URL);
-    if (result.error) {
-      errorUrl.searchParams.set("error", result.error);
-    }
+  // 認証が完了した後でセッションを確認（デバッグ用）
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  console.log("認証処理後のセッション状態:", session ? "セッションあり" : "セッションなし");
 
-    redirect(errorUrl.toString());
+  if (session) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    console.log("認証されたユーザー情報:", user ? `ID: ${user.id}` : "ユーザー情報なし");
   }
 
-  // この行には到達しませんが、TypeScript対応のために空のdiv要素を返す
-  return <div />;
+  // baseUrlを決定（優先順位: 環境変数 > result.baseUrl > デフォルト）
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || result.baseUrl || "http://localhost:3000";
+
+  // 処理が完了したら、基本的にnextパラメータがあればそちらを優先する
+  if (result.success) {
+    // nextパラメータがあれば優先
+    const redirectTo = next && next !== "/" ? next : result.redirectPath;
+    console.log(`リダイレクト: ${redirectTo}`);
+
+    // 成功メッセージを付けて指定URLにリダイレクト
+    const successUrl = new URL(redirectTo, baseUrl);
+    successUrl.searchParams.set("auth_success", "true");
+    successUrl.searchParams.set("message", result.message || "認証に成功しました");
+
+    return redirect(successUrl.toString());
+  }
+
+  // 失敗時: エラーページにリダイレクト
+  console.log(`認証失敗: ${result.error || "不明なエラー"}`);
+
+  // エラーの場合も元のnextパラメータがあれば、ログインページにリダイレクト
+  if (next && next !== "/") {
+    console.log(`next パラメータありのため、ログインページへリダイレクト: ${next}`);
+    const loginUrl = new URL("/login", baseUrl);
+    loginUrl.searchParams.set("error", result.error || "認証に失敗しました");
+    loginUrl.searchParams.set("next", next);
+    return redirect(loginUrl.toString());
+  }
+
+  // それ以外はエラーページへ
+  const errorUrl = new URL("/error", baseUrl);
+  if (result.error) {
+    errorUrl.searchParams.set("error", result.error);
+  }
+
+  return redirect(errorUrl.toString());
 }

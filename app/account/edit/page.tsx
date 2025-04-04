@@ -102,7 +102,7 @@ export default function EditBaristaProfilePage() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          router.push("/auth/login");
+          router.push("/login");
           return;
         }
 
@@ -151,7 +151,7 @@ export default function EditBaristaProfilePage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 

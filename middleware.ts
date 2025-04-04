@@ -7,6 +7,16 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function middleware(request: NextRequest) {
   try {
+    // リクエストURLを出力（デバッグ用）
+    const url = request.nextUrl.pathname;
+    console.log(`ミドルウェア処理: ${url}`);
+
+    // auth/confirmパスは処理しない
+    if (url.startsWith("/auth/confirm")) {
+      console.log("auth/confirmパスはミドルウェアをスキップ");
+      return NextResponse.next();
+    }
+
     // セッション更新のためのレスポンスを取得
     // updateSession内でレスポンスが生成され、Cookieが設定される
     const response = await updateSession(request);
@@ -43,6 +53,11 @@ export async function middleware(request: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession();
 
+    console.log(
+      `セッションチェック: ${request.nextUrl.pathname}, 認証状態:`,
+      session ? "認証済み" : "未認証"
+    );
+
     // 決済関連のパスを識別
     const isPaymentPath = request.nextUrl.pathname.startsWith("/payment");
 
@@ -56,12 +71,12 @@ export async function middleware(request: NextRequest) {
     if ((isAccountPath || isBaristaPath || isPaymentPath) && !session) {
       if (isPaymentPath) {
         // 決済ページでは匿名ログインを許可せず、通常のログインに誘導
-        return NextResponse.redirect(new URL("/auth/login", request.url));
+        return NextResponse.redirect(new URL("/login", request.url));
       }
 
       if (isAccountPath || isBaristaPath) {
         // アカウント管理やバリスタページは登録ユーザーのみアクセス可能
-        return NextResponse.redirect(new URL("/auth/login", request.url));
+        return NextResponse.redirect(new URL("/login", request.url));
       }
     }
 
@@ -164,6 +179,6 @@ async function createAnonymousProfile(supabase: SupabaseClient, anonymousId: str
 export const config = {
   matcher: [
     // すべてのパスに適用（一部特殊なパスのみ除外）
-    "/((?!_next|favicon.ico|static).*)",
+    "/((?!_next|favicon.ico|static|auth/confirm).*)",
   ],
 };

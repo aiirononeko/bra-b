@@ -39,7 +39,7 @@ function getBaseURL() {
 
   logDebug(`Base URL: ${baseUrl}`);
   // 環境変数をログに出力
-  logDebug(`ENV Variables:`, {
+  logDebug("ENV Variables:", {
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
     NEXT_PUBLIC_VERCEL_URL: process.env.NEXT_PUBLIC_VERCEL_URL,
     NODE_ENV: process.env.NODE_ENV,
@@ -70,7 +70,10 @@ export async function signInWithMagicLink(formData: {
   try {
     // リダイレクト先の設定
     const redirectPath = userType === "barista" ? "/barista" : "/";
-    const redirectUrl = `${baseUrl}/auth/confirm?next=${redirectPath}`;
+
+    // リダイレクトURLにタイムスタンプを追加してキャッシュを回避
+    const timestamp = Date.now();
+    const redirectUrl = `${baseUrl}/auth/confirm?next=${redirectPath}&t=${timestamp}`;
 
     logDebug(`リダイレクトURL: ${redirectUrl}`);
 

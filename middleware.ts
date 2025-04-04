@@ -15,6 +15,8 @@ export async function middleware(request: NextRequest) {
       searchParams: Object.fromEntries(url.searchParams.entries()),
       host: url.host,
       origin: url.origin,
+      protocol: url.protocol,
+      referer: request.headers.get("referer") || "なし",
     });
 
     // Supabaseクライアントの作成
@@ -57,11 +59,84 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // 公開アクセス可能なパス（認証不要）
+    const publicPaths = [
+      "/login",
+      "/auth/confirm",
+      "/api/uploadthing",
+      "/barista/:path*", // バリスタ詳細画面を認証不要に
+    ];
+
+    // 必須認証パスのパターン
+    const protectedPaths = [
+      "/account/:path*",
+      "/settings/:path*",
+      "/profile/:path*",
+      "/salon/:path*",
+      "/admin/:path*",
+    ];
+
+    // パスがパターンにマッチするかチェックする関数
+    function isPublicPath(path: string): boolean {
+      return publicPaths.some((pattern) => {
+        // :path* パターンを処理
+        if (pattern.includes(":path*")) {
+          const base = pattern.replace(":path*", "");
+          return path.startsWith(base);
+        }
+        return path === pattern;
+      });
+    }
+
+    function isProtectedPath(path: string): boolean {
+      return protectedPaths.some((pattern) => {
+        // :path* パターンを処理
+        if (pattern.includes(":path*")) {
+          const base = pattern.replace(":path*", "");
+          return path.startsWith(base);
+        }
+        return path === pattern;
+      });
+    }
+
+    const path = request.nextUrl.pathname;
+    logDebug("パスアクセス", {
+      path,
+      isPublic: isPublicPath(path),
+      isProtected: isProtectedPath(path),
+    });
+
+    // Supabaseが設定した可能性のあるredirectToパラメータをチェック
+    const redirectTo = url.searchParams.get("redirectTo");
+    if (redirectTo) {
+      logDebug("Supabaseリダイレクトパラメータ検出", { redirectTo });
+    }
+
+    // ユーザーが認証済みの場合、ログインページにアクセスしようとするとアカウントページにリダイレクト
+    if (session && (path === "/login" || path === "/")) {
+      const redirectUrl = new URL("/account", url);
+      logDebug("認証済みユーザーをアカウントページへリダイレクト", {
+        from: path,
+        to: redirectUrl.pathname,
+      });
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // 保護されたルートへのアクセスには認証が必要
+    if (!session && isProtectedPath(path)) {
+      const redirectUrl = new URL("/login", url);
+      redirectUrl.searchParams.set("next", path);
+      logDebug("認証が必要なパスへのアクセスを拒否", {
+        path,
+        redirectTo: redirectUrl.pathname + redirectUrl.search,
+      });
+      return NextResponse.redirect(redirectUrl);
+    }
+
     // 公開ルート（認証不要）へのアクセスを許可
     const publicRoutes = [
       "/",
       "/api/webhooks",
-      "/api/uploadthing",
       "/customer",
       "/customer/search",
       "/customer/barista",

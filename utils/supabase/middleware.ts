@@ -95,7 +95,7 @@ export async function createClient(request: NextRequest) {
             logDebug(`Cookie get: ${name}`, {
               exists: !!value,
               valueLength: value ? value.length : 0,
-              valueStart: value ? value.substring(0, 10) + "..." : "なし",
+              valueStart: value ? `${value.substring(0, 10)}...` : "なし",
             });
             return value;
           },
@@ -106,13 +106,13 @@ export async function createClient(request: NextRequest) {
               // セキュリティ設定
               secure: true,
               httpOnly: true,
-              sameSite: "lax",
+              sameSite: "lax" as const,
               path: "/",
             };
 
             logDebug(`Cookie set: ${name}`, {
               valueLength: value ? value.length : 0,
-              valueStart: value ? value.substring(0, 10) + "..." : "なし",
+              valueStart: value ? `${value.substring(0, 10)}...` : "なし",
               options: fullOptions,
               domain: fullOptions.domain || "ドメイン指定なし",
               cookieHost: request.headers.get("host"),
@@ -134,6 +134,12 @@ export async function createClient(request: NextRequest) {
               maxAge: 0,
             });
           },
+        },
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+          flowType: "pkce",
         },
       }
     );

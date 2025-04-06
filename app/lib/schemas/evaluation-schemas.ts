@@ -7,9 +7,12 @@ export const evaluationSchema = z.object({
   baristaId: z.string().uuid({
     message: "有効なバリスタIDを指定してください",
   }),
-  userId: z.string().uuid({
-    message: "有効なユーザーIDを指定してください",
-  }),
+  userId: z.union([
+    z.string().uuid({
+      message: "有効なユーザーIDを指定してください",
+    }),
+    z.literal("anonymous"), // 匿名ユーザー向けのID
+  ]),
   selectedItems: z.array(z.string().uuid()).min(1, {
     message: "少なくとも1つの評価項目を選択してください",
   }),

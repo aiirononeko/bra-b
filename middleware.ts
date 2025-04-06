@@ -65,6 +65,7 @@ export async function middleware(request: NextRequest) {
       "/auth/confirm",
       "/api/uploadthing",
       "/barista/:path*", // バリスタ詳細画面を認証不要に
+      "/evaluate/:path*", // 評価機能を認証不要に
     ];
 
     // 必須認証パスのパターン
@@ -143,6 +144,8 @@ export async function middleware(request: NextRequest) {
       "/customer/shop",
       "/customer/evaluation",
       "/debug",
+      "/evaluate",
+      "/barista",
     ];
 
     // パスの先頭部分が公開ルートに一致するか
@@ -160,38 +163,35 @@ export async function middleware(request: NextRequest) {
     }
 
     // `/account` と `/barista/[id]` アクセスには認証が必要
-    if (
-      request.nextUrl.pathname.startsWith("/account") ||
-      request.nextUrl.pathname.startsWith("/barista")
-    ) {
+    if (request.nextUrl.pathname.startsWith("/account")) {
       if (!session) {
         // 未認証の場合はログインページにリダイレクト
         logDebug("認証が必要なパスへのアクセスを拒否", { path: request.nextUrl.pathname });
         return NextResponse.redirect(new URL("/login", request.url));
       }
+    }
 
-      // バリスタページのアクセス制御（特定のバリスタユーザーのみアクセス可能）
-      if (request.nextUrl.pathname.startsWith("/barista/")) {
-        const requestedBaristaId = request.nextUrl.pathname.split("/")[2];
-        const currentUserId = session.user?.id;
-        const userType = session.user?.user_metadata?.user_type;
+    // バリスタ管理ページのアクセス制御（特定のバリスタユーザーのみアクセス可能）
+    if (request.nextUrl.pathname.startsWith("/barista/") && session) {
+      const requestedBaristaId = request.nextUrl.pathname.split("/")[2];
+      const currentUserId = session.user?.id;
+      const userType = session.user?.user_metadata?.user_type;
 
-        logDebug("バリスタページのアクセス制御", {
-          requestedId: requestedBaristaId,
-          currentId: currentUserId,
-          userType,
-        });
+      logDebug("バリスタページのアクセス制御", {
+        requestedId: requestedBaristaId,
+        currentId: currentUserId,
+        userType,
+      });
 
-        // リクエストされたバリスタIDが現在のユーザーIDと一致しない、かつユーザータイプがバリスタでない場合
-        if (
-          requestedBaristaId !== currentUserId &&
-          userType !== "barista" &&
-          !isAdmin(session.user?.email)
-        ) {
-          // アクセス拒否
-          logDebug("バリスタページへのアクセスを拒否");
-          return NextResponse.redirect(new URL("/account", request.url));
-        }
+      // リクエストされたバリスタIDが現在のユーザーIDと一致しない、かつユーザータイプがバリスタでない場合
+      if (
+        requestedBaristaId !== currentUserId &&
+        userType !== "barista" &&
+        !isAdmin(session.user?.email)
+      ) {
+        // アクセス拒否
+        logDebug("バリスタページへのアクセスを拒否");
+        return NextResponse.redirect(new URL("/account", request.url));
       }
     }
 

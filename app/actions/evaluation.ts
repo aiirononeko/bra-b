@@ -12,6 +12,9 @@ import { revalidatePath } from "next/cache";
  */
 export async function createEvaluation(data: EvaluationFormData) {
   try {
+    // デバッグ情報
+    console.log("評価送信データ:", JSON.stringify(data, null, 2));
+
     // zodスキーマを使ったバリデーション
     const validationResult = evaluationSchema.safeParse(data);
 
@@ -24,6 +27,9 @@ export async function createEvaluation(data: EvaluationFormData) {
 
     // バリデーション済みのデータを取得
     const validatedData = validationResult.data;
+
+    // デバッグ情報
+    console.log("バリデーション済みデータ:", JSON.stringify(validatedData, null, 2));
 
     // 評価データを作成
     const evaluationData = {
@@ -38,7 +44,7 @@ export async function createEvaluation(data: EvaluationFormData) {
     // エラーがある場合はエラーを返却
     if (result.error) {
       console.error("評価の保存中にエラーが発生しました:", result.error);
-      return { error: "評価の保存中にエラーが発生しました" };
+      return { error: `評価の保存中にエラーが発生しました: ${JSON.stringify(result.error)}` };
     }
 
     // バリスタカテゴリを更新（エッジファンクション経由）

@@ -236,8 +236,8 @@ async function calculateAndUpdateBaristaCategory(
 
   for (const category of Object.keys(categoryPoints) as CategoryType[]) {
     const points = categoryPoints[category];
-    // スコアを0-5の範囲に正規化
-    const score = totalEvaluations > 0 ? Math.min((points / maxPossiblePoints) * 5, 5) : 0;
+    // スコアの正規化時に最大値制限を撤廃
+    const score = totalEvaluations > 0 ? (points / maxPossiblePoints) * 5 : 0;
 
     categoryScores.push({
       categoryName: category,

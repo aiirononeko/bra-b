@@ -39,18 +39,10 @@ export default function EvaluationForm({
     setSubmitting(true);
 
     try {
-      // 未認証ユーザーの場合はログインページに遷移
-      if (!authStatus.isLoggedIn) {
-        router.push(
-          `/login?message=${encodeURIComponent("評価を送信するにはログインが必要です。")}`
-        );
-        return;
-      }
-
-      // ログインしている場合は評価を送信
+      // ログイン状態に関わらず評価を送信
       const evaluationData: EvaluationFormData = {
         baristaId,
-        userId: authStatus.userId,
+        userId: authStatus.userId || "anonymous", // 未認証の場合は'anonymous'を使用
         selectedItems,
       };
 
@@ -118,9 +110,7 @@ export default function EvaluationForm({
         </button>
 
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-          {authStatus.isLoggedIn
-            ? "評価を送信すると、このバリスタのプロフィールページに反映されます。"
-            : "評価を送信するには、ログインが必要です。"}
+          評価を送信すると、このバリスタのプロフィールページに反映されます。
         </p>
       </div>
     </div>
